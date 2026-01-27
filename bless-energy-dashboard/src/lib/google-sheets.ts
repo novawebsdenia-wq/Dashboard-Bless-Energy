@@ -20,6 +20,23 @@ export const SHEET_IDS = {
   contabilidad: process.env.SHEET_CONTABILIDAD_ID!,
 };
 
+// In-memory cache for Google Sheets API responses
+const cache = new Map<string, { data: unknown; timestamp: number }>();
+const CACHE_TTL_MS = 30_000; // 30 seconds
+const CACHE_INFO_TTL_MS = 120_000; // 2 minutes for sheet info (rarely changes)
+
+function getCached<T>(key: string, ttl: number): T | null {
+  const entry = cache.get(key);
+  if (entry && Date.now() - entry.timestamp < ttl) {
+    return entry.data as T;
+  }
+  return null;
+}
+
+function setCache(key: string, data: unknown): void {
+  cache.set(key, { data, timestamp: Date.now() });
+}
+
 export interface SheetData {
   headers: string[];
   rows: string[][];
@@ -29,6 +46,10 @@ export async function getSheetData(
   spreadsheetId: string,
   range: string
 ): Promise<SheetData> {
+  const cacheKey = `data:${spreadsheetId}:${range}`;
+  const cached = getCached<SheetData>(cacheKey, CACHE_TTL_MS);
+  if (cached) return cached;
+
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -39,10 +60,21 @@ export async function getSheetData(
     const headers = values[0] || [];
     const rows = values.slice(1);
 
-    return { headers, rows };
+    const result = { headers, rows };
+    setCache(cacheKey, result);
+    return result;
   } catch (error) {
     console.error('Error fetching sheet data:', error);
     throw error;
+  }
+}
+
+// Invalidate all cache entries for a spreadsheet after writes
+function invalidateCache(spreadsheetId: string): void {
+  for (const key of cache.keys()) {
+    if (key.includes(spreadsheetId)) {
+      cache.delete(key);
+    }
   }
 }
 
@@ -58,6 +90,7 @@ export async function updateSheetRow(
       valueInputOption: 'USER_ENTERED',
       requestBody: { values },
     });
+    invalidateCache(spreadsheetId);
   } catch (error) {
     console.error('Error updating sheet:', error);
     throw error;
@@ -76,6 +109,7 @@ export async function appendSheetRow(
       valueInputOption: 'USER_ENTERED',
       requestBody: { values },
     });
+    invalidateCache(spreadsheetId);
   } catch (error) {
     console.error('Error appending to sheet:', error);
     throw error;
@@ -105,6 +139,7 @@ export async function deleteSheetRow(
         ],
       },
     });
+    invalidateCache(spreadsheetId);
   } catch (error) {
     console.error('Error deleting row:', error);
     throw error;
@@ -112,14 +147,20 @@ export async function deleteSheetRow(
 }
 
 export async function getSheetInfo(spreadsheetId: string) {
+  const cacheKey = `info:${spreadsheetId}`;
+  const cached = getCached<{ sheetId: number | undefined; title: string | undefined }[]>(cacheKey, CACHE_INFO_TTL_MS);
+  if (cached) return cached;
+
   try {
     const response = await sheets.spreadsheets.get({
       spreadsheetId,
     });
-    return response.data.sheets?.map((sheet) => ({
+    const result = response.data.sheets?.map((sheet) => ({
       sheetId: sheet.properties?.sheetId,
       title: sheet.properties?.title,
     }));
+    if (result) setCache(cacheKey, result);
+    return result;
   } catch (error) {
     console.error('Error getting sheet info:', error);
     throw error;

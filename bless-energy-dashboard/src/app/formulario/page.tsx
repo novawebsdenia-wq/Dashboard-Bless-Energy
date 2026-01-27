@@ -109,21 +109,33 @@ export default function FormularioPage() {
 
       <div className="flex-1 p-6 overflow-y-auto">
         {/* Stats summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-white dark:bg-black/30 border border-gray-200 dark:border-gold/20 rounded-xl p-4 shadow-sm">
             <p className="text-gray-500 dark:text-gray-400 text-sm">Total registros</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{rows.length}</p>
           </div>
-          <div className="bg-white dark:bg-black/30 border border-green-200 dark:border-green-500/20 rounded-xl p-4 shadow-sm">
+          <div className="bg-white dark:bg-black/30 border border-yellow-200 dark:border-yellow-500/20 rounded-xl p-4 shadow-sm">
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Pendientes</p>
+            <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-500">
+              {rows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('pendiente')).length}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-black/30 border border-purple-200 dark:border-purple-500/20 rounded-xl p-4 shadow-sm">
             <p className="text-gray-500 dark:text-gray-400 text-sm">Contactados</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-500">
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-500">
               {rows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('contactado')).length}
             </p>
           </div>
-          <div className="bg-white dark:bg-black/30 border border-red-200 dark:border-red-500/20 rounded-xl p-4 shadow-sm">
-            <p className="text-gray-500 dark:text-gray-400 text-sm">Pendientes</p>
-            <p className="text-2xl font-bold text-red-600 dark:text-red-500">
-              {rows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('pendiente')).length}
+          <div className="bg-white dark:bg-black/30 border border-blue-200 dark:border-blue-500/20 rounded-xl p-4 shadow-sm">
+            <p className="text-gray-500 dark:text-gray-400 text-sm">En proceso</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-500">
+              {rows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('proceso')).length}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-black/30 border border-green-200 dark:border-green-500/20 rounded-xl p-4 shadow-sm">
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Cerrados</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-500">
+              {rows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('cerrado')).length}
             </p>
           </div>
         </div>
