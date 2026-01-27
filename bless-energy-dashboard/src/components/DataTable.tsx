@@ -5,6 +5,7 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Edit2,
   Save,
   X,
@@ -45,6 +46,7 @@ export default function DataTable({
     direction: 'asc' | 'desc';
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [expandedCard, setExpandedCard] = useState<number | null>(null);
 
   const rowsPerPage = 10;
 
@@ -255,121 +257,213 @@ export default function DataTable({
             {paginatedRows.map((row, index) => {
               const actualRowIndex = Number(row.rowIndex) || index + 2;
               const isEditing = editingRow === actualRowIndex;
+              const isExpanded = expandedCard === actualRowIndex || isEditing;
 
-              // Get first visible field as card title
-              const titleHeader = visibleHeaders[0];
-              const titleValue = String(row[titleHeader] || '-');
+              // Find key fields for compact preview
+              const nameHeader = visibleHeaders.find(h => h.toLowerCase().includes('nombre')) || visibleHeaders[0];
+              const dateHeader = visibleHeaders.find(h => h.toLowerCase().includes('fecha'));
+              const emailHeader = visibleHeaders.find(h => h.toLowerCase().includes('email') || h.toLowerCase().includes('correo'));
+              const statusHeader = visibleHeaders.find(h => h.toLowerCase().includes('estado'));
+
+              const nameValue = String(row[nameHeader] || '-');
+              const dateValue = dateHeader ? String(row[dateHeader] || '') : '';
+              const emailValue = emailHeader ? String(row[emailHeader] || '') : '';
+              const statusValue = statusHeader ? String(row[statusHeader] || '') : '';
+
+              // Fields to show in expanded view (exclude those already in preview)
+              const previewKeys = new Set([nameHeader, dateHeader, emailHeader, statusHeader].filter(Boolean));
+              const expandedHeaders = visibleHeaders.filter(h => !previewKeys.has(h));
 
               return (
                 <div
                   key={row.id || index}
-                  className="p-4 hover:bg-gray-50 dark:hover:bg-gold/5 transition-colors"
+                  className="transition-colors"
                 >
-                  {/* Card Header */}
-                  <div className="flex items-start justify-between mb-3 pb-3 border-b border-gray-200 dark:border-gold/10">
-                    <h3 className="font-semibold text-gray-900 dark:text-white text-base">
-                      {titleValue}
-                    </h3>
-                    {onUpdate && (
+                  {/* Compact Preview - always visible */}
+                  <div
+                    className="p-4 flex items-center gap-3 cursor-pointer active:bg-gray-100 dark:active:bg-gold/10"
+                    onClick={() => {
+                      if (!isEditing) setExpandedCard(isExpanded ? null : actualRowIndex);
+                    }}
+                  >
+                    {/* Main info */}
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        {isEditing ? (
-                          <>
-                            <button
-                              onClick={() => handleSave(actualRowIndex)}
-                              disabled={isSaving}
-                              className="p-1.5 text-green-500 hover:bg-green-500/20 rounded transition-colors disabled:opacity-50"
-                            >
-                              <Save className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={handleCancel}
-                              className="p-1.5 text-red-500 hover:bg-red-500/20 rounded transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => handleEdit(actualRowIndex, row)}
-                            className="p-1.5 text-gold hover:bg-gold/20 rounded transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">
+                          {nameValue}
+                        </p>
+                        {statusValue && !isExpanded && (
+                          <span className={`flex-shrink-0 inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${getStatusClass(statusValue)}`}>
+                            {statusValue}
+                          </span>
                         )}
                       </div>
-                    )}
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {dateValue && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400">{dateValue}</span>
+                        )}
+                        {dateValue && emailValue && (
+                          <span className="text-xs text-gray-300 dark:text-gray-600">·</span>
+                        )}
+                        {emailValue && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{emailValue}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Expand arrow */}
+                    <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                   </div>
 
-                  {/* Card Fields */}
-                  <div className="space-y-3">
-                    {visibleHeaders.slice(1).map((header) => {
-                      const fieldType = getFieldType(header);
-                      const options = getOptionsForField(header);
-                      const currentValue = String(row[header] || '');
-                      const showAsBadge = shouldShowAsBadge(header);
-
-                      return (
-                        <div key={header} className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                            {header}
-                          </label>
-                          <div className="text-sm text-gray-900 dark:text-white">
+                  {/* Expanded Details */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4 pt-0">
+                      <div className="bg-gray-50 dark:bg-black/40 rounded-xl p-4 space-y-3 border border-gray-200 dark:border-gold/10">
+                        {/* Status selector (always show if available) */}
+                        {statusHeader && (
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                              {statusHeader}
+                            </label>
                             {isEditing ? (
-                              fieldType !== 'text' && showStatusSelectors ? (
-                                <select
-                                  value={editedValues[header] || ''}
-                                  onChange={(e) =>
-                                    setEditedValues((prev) => ({
-                                      ...prev,
-                                      [header]: e.target.value,
-                                    }))
-                                  }
-                                  className="w-full px-3 py-2 bg-gray-50 dark:bg-black/50 border border-gold/30 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-gold"
-                                >
-                                  <option value="">Seleccionar...</option>
-                                  {options.map((opt) => (
-                                    <option key={opt} value={opt}>{opt}</option>
-                                  ))}
-                                </select>
-                              ) : (
-                                <input
-                                  type="text"
-                                  value={editedValues[header] || ''}
-                                  onChange={(e) =>
-                                    setEditedValues((prev) => ({
-                                      ...prev,
-                                      [header]: e.target.value,
-                                    }))
-                                  }
-                                  className="w-full px-3 py-2 bg-gray-50 dark:bg-black/50 border border-gold/30 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-gold"
-                                />
-                              )
-                            ) : showAsBadge || (fieldType === 'priority' && pageType === 'emails') ? (
-                              <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${getPriorityClass(currentValue)}`}>
-                                {currentValue || '-'}
-                              </span>
-                            ) : fieldType !== 'text' && showStatusSelectors && onUpdate ? (
                               <select
-                                value={currentValue}
-                                onChange={(e) => handleQuickStatusChange(row, header, e.target.value)}
-                                disabled={isSaving}
-                                className={`w-full px-3 py-2 rounded-lg text-sm font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-gold/50 ${getStatusClass(currentValue)}`}
+                                value={editedValues[statusHeader] || ''}
+                                onChange={(e) =>
+                                  setEditedValues((prev) => ({
+                                    ...prev,
+                                    [statusHeader]: e.target.value,
+                                  }))
+                                }
+                                className="px-3 py-1.5 bg-white dark:bg-black/50 border border-gold/30 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold"
                               >
                                 <option value="">Seleccionar...</option>
-                                {options.map((opt) => (
+                                {getOptionsForField(statusHeader).map((opt) => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            ) : onUpdate ? (
+                              <select
+                                value={statusValue}
+                                onChange={(e) => handleQuickStatusChange(row, statusHeader, e.target.value)}
+                                disabled={isSaving}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-gold/50 ${getStatusClass(statusValue)}`}
+                              >
+                                <option value="">Seleccionar...</option>
+                                {getOptionsForField(statusHeader).map((opt) => (
                                   <option key={opt} value={opt}>{opt}</option>
                                 ))}
                               </select>
                             ) : (
-                              <span className="break-words">
-                                {currentValue || '-'}
+                              <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(statusValue)}`}>
+                                {statusValue || '-'}
                               </span>
                             )}
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        )}
+
+                        {/* Other fields */}
+                        {expandedHeaders.map((header) => {
+                          const fieldType = getFieldType(header);
+                          const options = getOptionsForField(header);
+                          const currentValue = String(row[header] || '');
+                          const showAsBadge = shouldShowAsBadge(header);
+
+                          return (
+                            <div key={header} className="flex items-start justify-between gap-3">
+                              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide flex-shrink-0 pt-1">
+                                {header}
+                              </label>
+                              <div className="text-sm text-gray-900 dark:text-white text-right">
+                                {isEditing ? (
+                                  fieldType !== 'text' && showStatusSelectors ? (
+                                    <select
+                                      value={editedValues[header] || ''}
+                                      onChange={(e) =>
+                                        setEditedValues((prev) => ({
+                                          ...prev,
+                                          [header]: e.target.value,
+                                        }))
+                                      }
+                                      className="px-3 py-1.5 bg-white dark:bg-black/50 border border-gold/30 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold"
+                                    >
+                                      <option value="">Seleccionar...</option>
+                                      {options.map((opt) => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <input
+                                      type="text"
+                                      value={editedValues[header] || ''}
+                                      onChange={(e) =>
+                                        setEditedValues((prev) => ({
+                                          ...prev,
+                                          [header]: e.target.value,
+                                        }))
+                                      }
+                                      className="w-full px-3 py-1.5 bg-white dark:bg-black/50 border border-gold/30 rounded-lg text-sm text-gray-900 dark:text-white text-right focus:outline-none focus:border-gold"
+                                    />
+                                  )
+                                ) : showAsBadge || (fieldType === 'priority' && pageType === 'emails') ? (
+                                  <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${getPriorityClass(currentValue)}`}>
+                                    {currentValue || '-'}
+                                  </span>
+                                ) : fieldType !== 'text' && showStatusSelectors && onUpdate ? (
+                                  <select
+                                    value={currentValue}
+                                    onChange={(e) => handleQuickStatusChange(row, header, e.target.value)}
+                                    disabled={isSaving}
+                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-gold/50 ${getStatusClass(currentValue)}`}
+                                  >
+                                    <option value="">Seleccionar...</option>
+                                    {options.map((opt) => (
+                                      <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span className="break-words">{currentValue || '-'}</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Edit actions */}
+                        {onUpdate && (
+                          <div className="pt-2 border-t border-gray-200 dark:border-gold/10 flex justify-end gap-2">
+                            {isEditing ? (
+                              <>
+                                <button
+                                  onClick={handleCancel}
+                                  className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors"
+                                >
+                                  Cancelar
+                                </button>
+                                <button
+                                  onClick={() => handleSave(actualRowIndex)}
+                                  disabled={isSaving}
+                                  className="px-3 py-1.5 text-sm bg-gold text-black font-medium rounded-lg hover:bg-gold/80 transition-colors disabled:opacity-50"
+                                >
+                                  Guardar
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEdit(actualRowIndex, row);
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gold hover:bg-gold/10 rounded-lg transition-colors"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                                Editar
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
