@@ -260,7 +260,7 @@ export default function DataTable({
               const isExpanded = expandedCard === actualRowIndex || isEditing;
 
               // Find key fields for compact preview
-              const nameHeader = visibleHeaders.find(h => h.toLowerCase().includes('nombre')) || visibleHeaders[0];
+              const nameHeader = visibleHeaders.find(h => h.toLowerCase().includes('nombre') || h.toLowerCase().includes('proveedor')) || visibleHeaders[0];
               const dateHeader = visibleHeaders.find(h => h.toLowerCase().includes('fecha'));
               const emailHeader = visibleHeaders.find(h => h.toLowerCase().includes('email') || h.toLowerCase().includes('correo'));
               const statusHeader = visibleHeaders.find(h => h.toLowerCase().includes('estado'));
