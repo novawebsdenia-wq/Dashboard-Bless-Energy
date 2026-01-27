@@ -10,6 +10,7 @@ import {
   Save,
   X,
   Download,
+  ExternalLink,
 } from 'lucide-react';
 
 // Status options for different fields
@@ -88,6 +89,17 @@ export default function DataTable({
   const isInternalField = (header: string): boolean => {
     const h = header.toLowerCase();
     return h === 'id' || h === 'rowindex';
+  };
+
+  // Check if a value is a URL
+  const isUrl = (value: string): boolean => {
+    return /^https?:\/\/.+/i.test(value.trim());
+  };
+
+  // Check if a header is a link-type field
+  const isLinkField = (header: string): boolean => {
+    const h = header.toLowerCase();
+    return h.includes('link') || h.includes('url') || h.includes('enlace');
   };
 
   // Get visible headers (excluding internal fields)
@@ -420,6 +432,17 @@ export default function DataTable({
                                       <option key={opt} value={opt}>{opt}</option>
                                     ))}
                                   </select>
+                                ) : (isLinkField(header) || isUrl(currentValue)) && currentValue ? (
+                                  <a
+                                    href={currentValue}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold/10 text-gold rounded-lg text-xs font-medium hover:bg-gold/20 transition-colors"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    Ver factura
+                                  </a>
                                 ) : (
                                   <span className="break-words">{currentValue || '-'}</span>
                                 )}
@@ -574,6 +597,16 @@ export default function DataTable({
                                 <option key={opt} value={opt}>{opt}</option>
                               ))}
                             </select>
+                          ) : (isLinkField(header) || isUrl(currentValue)) && currentValue ? (
+                            <a
+                              href={currentValue}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-gold hover:text-gold/80 transition-colors"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              Ver factura
+                            </a>
                           ) : (
                             <span className="truncate max-w-xs block">
                               {currentValue || '-'}
