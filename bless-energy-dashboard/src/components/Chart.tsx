@@ -54,7 +54,7 @@ export default function Chart({
       const item = payload[0];
       return (
         <div className="bg-white dark:bg-black border border-gray-200 dark:border-gold/30 rounded-lg p-3 shadow-lg">
-          <p className="text-gray-700 dark:text-gray-300 text-sm font-medium">{item.name || label}</p>
+          <p className="text-gray-700 dark:text-gray-300 text-sm font-medium">{item.payload?.name || label}</p>
           <p className="text-lg font-bold" style={{ color: item.payload?.fill || '#D4AF37' }}>
             {item.value} leads
           </p>

@@ -139,15 +139,30 @@ export default function NotificationPanel({
 
 function formatTimeAgo(dateString: string): string {
   const date = new Date(dateString);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
+  if (isNaN(date.getTime())) return '';
 
-  if (minutes < 1) return 'Ahora mismo';
-  if (minutes < 60) return `Hace ${minutes} min`;
-  if (hours < 24) return `Hace ${hours} h`;
-  if (days < 7) return `Hace ${days} dias`;
+  const now = new Date();
+
+  // Check if the timestamp has real time precision (not midnight default)
+  const hasTimePrecision = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0;
+
+  if (hasTimePrecision) {
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+
+    if (minutes < 1) return 'Ahora mismo';
+    if (minutes < 60) return `Hace ${minutes} min`;
+    if (hours < 24) return `Hace ${hours} h`;
+  }
+
+  // Compare by calendar day for date-only timestamps
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const daysDiff = Math.round((today.getTime() - dateDay.getTime()) / 86400000);
+
+  if (daysDiff === 0) return 'Hoy';
+  if (daysDiff === 1) return 'Ayer';
+  if (daysDiff < 7) return `Hace ${daysDiff} dias`;
   return date.toLocaleDateString('es-ES');
 }
