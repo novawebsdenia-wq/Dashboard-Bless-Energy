@@ -49,19 +49,23 @@ export async function GET() {
     const calcFechaIdx = findCol(calculadoraData.headers, 'fecha');
     const calcNombreIdx = findCol(calculadoraData.headers, 'nombre');
     const calcEmailIdx = findCol(calculadoraData.headers, 'email', 'correo');
-    
+    const calcEstadoIdx = findCol(calculadoraData.headers, 'estado');
+
     calculadoraData.rows.forEach((row) => {
-      const name = calcNombreIdx >= 0 ? row[calcNombreIdx] : 
-                   (calcEmailIdx >= 0 ? row[calcEmailIdx] : 'Lead sin nombre');
-      const date = calcFechaIdx >= 0 ? row[calcFechaIdx] : new Date().toISOString();
-      
-      if (name) {
+      const name = (calcNombreIdx >= 0 ? row[calcNombreIdx] : '') ||
+                   (calcEmailIdx >= 0 ? row[calcEmailIdx] : '') ||
+                   'Lead sin nombre';
+      const rawDate = calcFechaIdx >= 0 ? row[calcFechaIdx] : '';
+      const date = parseDate(rawDate);
+      const status = calcEstadoIdx >= 0 ? row[calcEstadoIdx] : 'Pendiente';
+
+      if (name && date) {
         activities.push({
           type: 'lead',
           source: 'Calculadora',
-          name: name || 'Lead sin nombre',
-          date: parseDate(date),
-          status: 'Nuevo',
+          name,
+          date,
+          status: status || 'Pendiente',
         });
       }
     });
@@ -70,19 +74,23 @@ export async function GET() {
     const formFechaIdx = findCol(formularioData.headers, 'fecha');
     const formNombreIdx = findCol(formularioData.headers, 'nombre');
     const formEmailIdx = findCol(formularioData.headers, 'email', 'correo');
-    
+    const formEstadoIdx = findCol(formularioData.headers, 'estado');
+
     formularioData.rows.forEach((row) => {
-      const name = formNombreIdx >= 0 ? row[formNombreIdx] : 
-                   (formEmailIdx >= 0 ? row[formEmailIdx] : 'Lead sin nombre');
-      const date = formFechaIdx >= 0 ? row[formFechaIdx] : new Date().toISOString();
-      
-      if (name) {
+      const name = (formNombreIdx >= 0 ? row[formNombreIdx] : '') ||
+                   (formEmailIdx >= 0 ? row[formEmailIdx] : '') ||
+                   'Lead sin nombre';
+      const rawDate = formFechaIdx >= 0 ? row[formFechaIdx] : '';
+      const date = parseDate(rawDate);
+      const status = formEstadoIdx >= 0 ? row[formEstadoIdx] : 'Pendiente';
+
+      if (name && date) {
         activities.push({
           type: 'lead',
           source: 'Formulario',
-          name: name || 'Lead sin nombre',
-          date: parseDate(date),
-          status: 'Nuevo',
+          name,
+          date,
+          status: status || 'Pendiente',
         });
       }
     });
@@ -90,18 +98,21 @@ export async function GET() {
     // Process Clientes
     const clientFechaIdx = findCol(clientesData.headers, 'fecha');
     const clientNombreIdx = findCol(clientesData.headers, 'nombre');
-    
+    const clientEstadoIdx = findCol(clientesData.headers, 'estado');
+
     clientesData.rows.forEach((row) => {
-      const name = clientNombreIdx >= 0 ? row[clientNombreIdx] : 'Cliente sin nombre';
-      const date = clientFechaIdx >= 0 ? row[clientFechaIdx] : new Date().toISOString();
-      
-      if (name) {
+      const name = (clientNombreIdx >= 0 ? row[clientNombreIdx] : '') || 'Cliente sin nombre';
+      const rawDate = clientFechaIdx >= 0 ? row[clientFechaIdx] : '';
+      const date = parseDate(rawDate);
+      const status = clientEstadoIdx >= 0 ? row[clientEstadoIdx] : 'Nuevo';
+
+      if (name && date) {
         activities.push({
           type: 'cliente',
           source: 'Clientes',
-          name: name || 'Cliente sin nombre',
-          date: parseDate(date),
-          status: 'Nuevo',
+          name,
+          date,
+          status: status || 'Nuevo',
         });
       }
     });
@@ -128,34 +139,59 @@ export async function GET() {
   }
 }
 
-// Helper to parse various date formats
+// Helper to parse various date formats including time
 function parseDate(dateStr: string): string {
-  if (!dateStr) return new Date().toISOString();
-  
+  if (!dateStr) return '';
+
   try {
-    // Try direct parsing
+    // Try standard ISO parsing first
     let date = new Date(dateStr);
-    if (!isNaN(date.getTime())) {
+    if (!isNaN(date.getTime()) && dateStr.includes('-') && dateStr.includes('T')) {
       return date.toISOString();
     }
-    
-    // Try DD/MM/YYYY format
-    const parts = dateStr.split(/[\/\-\.]/);
+
+    // Split date and time parts (e.g., "27/01/2026 16:30:45")
+    const trimmed = dateStr.trim();
+    const spaceIdx = trimmed.indexOf(' ');
+    const datePart = spaceIdx >= 0 ? trimmed.substring(0, spaceIdx) : trimmed;
+    const timePart = spaceIdx >= 0 ? trimmed.substring(spaceIdx + 1).trim() : '';
+
+    // Try DD/MM/YYYY or DD-MM-YYYY format
+    const parts = datePart.split(/[\/\-\.]/);
     if (parts.length === 3) {
       const day = parseInt(parts[0]);
       const month = parseInt(parts[1]) - 1;
-      const year = parseInt(parts[2]);
-      
-      if (day <= 31 && month <= 11) {
-        date = new Date(year, month, day);
+      let year = parseInt(parts[2]);
+
+      if (year < 100) {
+        year += year < 50 ? 2000 : 1900;
+      }
+
+      if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
+        let hours = 0, minutes = 0, seconds = 0;
+
+        if (timePart) {
+          const timeParts = timePart.split(':');
+          hours = parseInt(timeParts[0]) || 0;
+          minutes = parseInt(timeParts[1]) || 0;
+          seconds = parseInt(timeParts[2]) || 0;
+        }
+
+        date = new Date(year, month, day, hours, minutes, seconds);
         if (!isNaN(date.getTime())) {
           return date.toISOString();
         }
       }
     }
-    
-    return new Date().toISOString();
+
+    // Last resort: try native parsing
+    date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString();
+    }
+
+    return '';
   } catch {
-    return new Date().toISOString();
+    return '';
   }
 }

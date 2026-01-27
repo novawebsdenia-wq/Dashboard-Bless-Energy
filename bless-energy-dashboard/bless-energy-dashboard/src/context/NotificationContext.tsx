@@ -36,38 +36,37 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     try {
       const response = await fetch('/api/notifications');
       const data = await response.json();
-      
+
       if (data.success) {
         const { recentActivity, counts } = data.data;
-        
+
         // Check for new records (only after first load)
         if (!isFirstLoadRef.current && previousCountsRef.current) {
           const newCalc = counts.calculadora - previousCountsRef.current.calculadora;
           const newForm = counts.formulario - previousCountsRef.current.formulario;
           const newClientes = counts.clientes - previousCountsRef.current.clientes;
-          
+
           const totalNew = Math.max(0, newCalc) + Math.max(0, newForm) + Math.max(0, newClientes);
           if (totalNew > 0) {
             setNewNotificationsCount(prev => prev + totalNew);
           }
         }
-        
+
         // Update previous counts
         previousCountsRef.current = counts;
         isFirstLoadRef.current = false;
-        
+
         // Get stored read notifications
-        const storedRead = JSON.parse(localStorage.getItem('readNotifications') || '[]');
-        const storedSeen = JSON.parse(localStorage.getItem('seenNotifications') || '[]');
-        
+        const storedRead: string[] = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+
         // Create notifications from recent activity
         const newNotifications: Notification[] = recentActivity.map((activity: any) => {
-          // Create a unique ID based on the activity data
-          const id = `${activity.source}-${activity.name}-${activity.date}`.replace(/[^a-zA-Z0-9]/g, '-');
-          
+          // Create a stable ID based on source + name (not date, to avoid instability)
+          const id = `${activity.source}-${activity.name}`.replace(/[^a-zA-Z0-9]/g, '-');
+
           let title = 'Nueva entrada';
           let type: 'lead' | 'cliente' | 'email' = 'lead';
-          
+
           if (activity.source === 'Calculadora') {
             title = 'Nuevo lead - Calculadora';
             type = 'lead';
@@ -81,7 +80,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             title = 'Nuevo email';
             type = 'email';
           }
-          
+
           return {
             id,
             type,
@@ -111,7 +110,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
-    const storedRead = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+    const storedRead: string[] = JSON.parse(localStorage.getItem('readNotifications') || '[]');
     if (!storedRead.includes(id)) {
       localStorage.setItem('readNotifications', JSON.stringify([...storedRead, id]));
     }
@@ -119,11 +118,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const markAllAsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    const allIds = notifications.map((n) => n.id);
-    localStorage.setItem('readNotifications', JSON.stringify(allIds));
+    setNotifications((prev) => {
+      // Merge existing stored IDs with all current notification IDs
+      const storedRead: string[] = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+      const allIds = new Set([...storedRead, ...prev.map((n) => n.id)]);
+      localStorage.setItem('readNotifications', JSON.stringify([...allIds]));
+      return prev.map((n) => ({ ...n, read: true }));
+    });
     setNewNotificationsCount(0);
-  }, [notifications]);
+  }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

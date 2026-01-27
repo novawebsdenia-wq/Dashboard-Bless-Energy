@@ -27,32 +27,51 @@ export async function GET() {
       getSheetData(SHEET_IDS.clientes, `${clientesTab}!A:Z`).catch(() => ({ headers: [], rows: [] })),
     ]);
 
-    // Helper to parse dates in various formats
+    // Helper to parse dates in various formats including time
     const parseDate = (dateStr: string): Date | null => {
       if (!dateStr) return null;
-      
-      // Try standard parsing first
+
+      // Try standard ISO parsing first
       let date = new Date(dateStr);
-      if (!isNaN(date.getTime())) return date;
-      
+      if (!isNaN(date.getTime()) && dateStr.includes('-') && dateStr.includes('T')) return date;
+
+      // Split date and time parts (e.g., "27/01/2026 16:30:45")
+      const trimmed = dateStr.trim();
+      const spaceIdx = trimmed.indexOf(' ');
+      const datePart = spaceIdx >= 0 ? trimmed.substring(0, spaceIdx) : trimmed;
+      const timePart = spaceIdx >= 0 ? trimmed.substring(spaceIdx + 1).trim() : '';
+
       // Try DD/MM/YYYY or DD-MM-YYYY format
-      const parts = dateStr.split(/[\/\-\.]/);
+      const parts = datePart.split(/[\/\-\.]/);
       if (parts.length === 3) {
         const day = parseInt(parts[0]);
         const month = parseInt(parts[1]) - 1;
         let year = parseInt(parts[2]);
-        
+
         // Handle 2-digit years
         if (year < 100) {
           year += year < 50 ? 2000 : 1900;
         }
-        
+
         if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
-          date = new Date(year, month, day);
+          let hours = 0, minutes = 0, seconds = 0;
+
+          if (timePart) {
+            const timeParts = timePart.split(':');
+            hours = parseInt(timeParts[0]) || 0;
+            minutes = parseInt(timeParts[1]) || 0;
+            seconds = parseInt(timeParts[2]) || 0;
+          }
+
+          date = new Date(year, month, day, hours, minutes, seconds);
           if (!isNaN(date.getTime())) return date;
         }
       }
-      
+
+      // Last resort: try native parsing
+      date = new Date(dateStr);
+      if (!isNaN(date.getTime())) return date;
+
       return null;
     };
 
