@@ -159,6 +159,9 @@ export default function ClientesPage() {
     }
   };
 
+  const estadoKey = headers.find(h => h.toLowerCase().includes('estado')) || 'estado';
+  const prioridadKey = headers.find(h => h.toLowerCase().includes('prioridad')) || 'prioridad';
+
   return (
     <>
       <Header
@@ -178,19 +181,19 @@ export default function ClientesPage() {
           <div className="bg-white dark:bg-black/30 border border-green-200 dark:border-green-500/20 rounded-xl p-4 shadow-sm">
             <p className="text-gray-500 dark:text-gray-400 text-sm">Activos</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-500">
-              {rows.filter(r => String(r.estado || '').toLowerCase().includes('activo')).length}
+              {rows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('activo')).length}
             </p>
           </div>
           <div className="bg-white dark:bg-black/30 border border-blue-200 dark:border-blue-500/20 rounded-xl p-4 shadow-sm">
             <p className="text-gray-500 dark:text-gray-400 text-sm">En proceso</p>
             <p className="text-2xl font-bold text-blue-600 dark:text-blue-500">
-              {rows.filter(r => String(r.estado || '').toLowerCase().includes('proceso')).length}
+              {rows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('proceso')).length}
             </p>
           </div>
           <div className="bg-white dark:bg-black/30 border border-gold/20 rounded-xl p-4 shadow-sm">
             <p className="text-gray-500 dark:text-gray-400 text-sm">Prioridad alta</p>
             <p className="text-2xl font-bold text-gold">
-              {rows.filter(r => String(r.prioridad || '').toLowerCase().includes('alta')).length}
+              {rows.filter(r => String(r[prioridadKey] || '').toLowerCase().includes('alta')).length}
             </p>
           </div>
         </div>

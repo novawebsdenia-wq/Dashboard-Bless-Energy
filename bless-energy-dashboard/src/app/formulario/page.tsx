@@ -96,6 +96,8 @@ export default function FormularioPage() {
     XLSX.writeFile(wb, `formulario_web_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  const estadoKey = headers.find(h => h.toLowerCase().includes('estado')) || 'estado';
+
   return (
     <>
       <Header
@@ -115,13 +117,13 @@ export default function FormularioPage() {
           <div className="bg-white dark:bg-black/30 border border-green-200 dark:border-green-500/20 rounded-xl p-4 shadow-sm">
             <p className="text-gray-500 dark:text-gray-400 text-sm">Contactados</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-500">
-              {rows.filter(r => String(r.estado || '').toLowerCase().includes('contactado')).length}
+              {rows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('contactado')).length}
             </p>
           </div>
           <div className="bg-white dark:bg-black/30 border border-red-200 dark:border-red-500/20 rounded-xl p-4 shadow-sm">
             <p className="text-gray-500 dark:text-gray-400 text-sm">Pendientes</p>
             <p className="text-2xl font-bold text-red-600 dark:text-red-500">
-              {rows.filter(r => String(r.estado || '').toLowerCase().includes('pendiente')).length}
+              {rows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('pendiente')).length}
             </p>
           </div>
         </div>
