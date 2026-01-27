@@ -82,6 +82,17 @@ export default function DataTable({
     return [];
   };
 
+  // Filter internal fields that shouldn't be displayed
+  const isInternalField = (header: string): boolean => {
+    const h = header.toLowerCase();
+    return h === 'id' || h === 'rowindex';
+  };
+
+  // Get visible headers (excluding internal fields)
+  const visibleHeaders = useMemo(() => {
+    return headers.filter(h => !isInternalField(h));
+  }, [headers]);
+
   // Filter and sort data
   const filteredRows = useMemo(() => {
     let result = [...rows];
@@ -163,13 +174,13 @@ export default function DataTable({
     newValue: string
   ) => {
     if (!onUpdate) return;
-    
+
     const rowIndex = Number(row.rowIndex) || 0;
     const values = headers.map((h) => {
       if (h === header) return newValue;
       return String(row[h] || '');
     });
-    
+
     setIsSaving(true);
     try {
       await onUpdate(rowIndex, values);
@@ -233,12 +244,145 @@ export default function DataTable({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* Mobile Card View */}
+      <div className="md:hidden">
+        {paginatedRows.length === 0 ? (
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+            No se encontraron registros
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-200 dark:divide-gold/10">
+            {paginatedRows.map((row, index) => {
+              const actualRowIndex = Number(row.rowIndex) || index + 2;
+              const isEditing = editingRow === actualRowIndex;
+
+              // Get first visible field as card title
+              const titleHeader = visibleHeaders[0];
+              const titleValue = String(row[titleHeader] || '-');
+
+              return (
+                <div
+                  key={row.id || index}
+                  className="p-4 hover:bg-gray-50 dark:hover:bg-gold/5 transition-colors"
+                >
+                  {/* Card Header */}
+                  <div className="flex items-start justify-between mb-3 pb-3 border-b border-gray-200 dark:border-gold/10">
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-base">
+                      {titleValue}
+                    </h3>
+                    {onUpdate && (
+                      <div className="flex items-center gap-2">
+                        {isEditing ? (
+                          <>
+                            <button
+                              onClick={() => handleSave(actualRowIndex)}
+                              disabled={isSaving}
+                              className="p-1.5 text-green-500 hover:bg-green-500/20 rounded transition-colors disabled:opacity-50"
+                            >
+                              <Save className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={handleCancel}
+                              className="p-1.5 text-red-500 hover:bg-red-500/20 rounded transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handleEdit(actualRowIndex, row)}
+                            className="p-1.5 text-gold hover:bg-gold/20 rounded transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card Fields */}
+                  <div className="space-y-3">
+                    {visibleHeaders.slice(1).map((header) => {
+                      const fieldType = getFieldType(header);
+                      const options = getOptionsForField(header);
+                      const currentValue = String(row[header] || '');
+                      const showAsBadge = shouldShowAsBadge(header);
+
+                      return (
+                        <div key={header} className="flex flex-col gap-1">
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                            {header}
+                          </label>
+                          <div className="text-sm text-gray-900 dark:text-white">
+                            {isEditing ? (
+                              fieldType !== 'text' && showStatusSelectors ? (
+                                <select
+                                  value={editedValues[header] || ''}
+                                  onChange={(e) =>
+                                    setEditedValues((prev) => ({
+                                      ...prev,
+                                      [header]: e.target.value,
+                                    }))
+                                  }
+                                  className="w-full px-3 py-2 bg-gray-50 dark:bg-black/50 border border-gold/30 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-gold"
+                                >
+                                  <option value="">Seleccionar...</option>
+                                  {options.map((opt) => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={editedValues[header] || ''}
+                                  onChange={(e) =>
+                                    setEditedValues((prev) => ({
+                                      ...prev,
+                                      [header]: e.target.value,
+                                    }))
+                                  }
+                                  className="w-full px-3 py-2 bg-gray-50 dark:bg-black/50 border border-gold/30 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-gold"
+                                />
+                              )
+                            ) : showAsBadge || (fieldType === 'priority' && pageType === 'emails') ? (
+                              <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${getPriorityClass(currentValue)}`}>
+                                {currentValue || '-'}
+                              </span>
+                            ) : fieldType !== 'text' && showStatusSelectors && onUpdate ? (
+                              <select
+                                value={currentValue}
+                                onChange={(e) => handleQuickStatusChange(row, header, e.target.value)}
+                                disabled={isSaving}
+                                className={`w-full px-3 py-2 rounded-lg text-sm font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-gold/50 ${getStatusClass(currentValue)}`}
+                              >
+                                <option value="">Seleccionar...</option>
+                                {options.map((opt) => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className="break-words">
+                                {currentValue || '-'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="bg-gray-50 dark:bg-black/50">
-              {headers.map((header) => (
+              {visibleHeaders.map((header) => (
                 <th
                   key={header}
                   onClick={() => handleSort(header)}
@@ -265,7 +409,7 @@ export default function DataTable({
             {paginatedRows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={headers.length + (onUpdate ? 1 : 0)}
+                  colSpan={visibleHeaders.length + (onUpdate ? 1 : 0)}
                   className="px-4 py-8 text-center text-gray-500"
                 >
                   No se encontraron registros
@@ -281,7 +425,7 @@ export default function DataTable({
                     key={row.id || index}
                     className="border-t border-gray-100 dark:border-gold/10 hover:bg-gray-50 dark:hover:bg-gold/5 transition-colors"
                   >
-                    {headers.map((header) => {
+                    {visibleHeaders.map((header) => {
                       const fieldType = getFieldType(header);
                       const options = getOptionsForField(header);
                       const currentValue = String(row[header] || '');
@@ -411,7 +555,7 @@ export default function DataTable({
 // Get class for priority badges (for emails)
 function getPriorityClass(priority: string): string {
   const p = priority?.toLowerCase() || '';
-  
+
   if (p.includes('critica') || p.includes('crítica')) {
     return 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400';
   }
