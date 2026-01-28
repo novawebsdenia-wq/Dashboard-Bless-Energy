@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import StatsCard from '@/components/StatsCard';
 import Chart from '@/components/Chart';
-import { Mail, Calculator, FileText, Users, TrendingUp, Clock } from 'lucide-react';
+import { Mail, Calculator, FileText, Users, TrendingUp, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Activity {
   type: string;
@@ -25,9 +25,12 @@ interface Stats {
   recentActivity: Activity[];
 }
 
+const ITEMS_PER_PAGE = 5;
+
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activityPage, setActivityPage] = useState(1);
 
   const fetchStats = async () => {
     setIsLoading(true);
@@ -64,8 +67,11 @@ export default function Dashboard() {
     return date.toLocaleDateString('es-ES');
   };
 
-  // Get icon for activity type
-  const getActivityIcon = (source: string) => {
+  // Get icon for activity type/source
+  const getActivityIcon = (source: string, type: string) => {
+    if (type === 'email' || source.toLowerCase().includes('email')) {
+      return Mail;
+    }
     switch (source) {
       case 'Calculadora':
         return Calculator;
@@ -76,6 +82,23 @@ export default function Dashboard() {
       default:
         return Users;
     }
+  };
+
+  // Get activity label based on type and source
+  const getActivityLabel = (activity: Activity) => {
+    const source = activity.source?.toLowerCase() || '';
+    const type = activity.type?.toLowerCase() || '';
+
+    if (type === 'email' || source.includes('email')) {
+      return 'Nuevo correo';
+    }
+    if (type === 'lead') {
+      return 'Nuevo lead';
+    }
+    if (type === 'cliente' || source === 'Clientes') {
+      return 'Nuevo cliente';
+    }
+    return 'Nueva entrada';
   };
 
   // Get status color
@@ -91,6 +114,14 @@ export default function Dashboard() {
     { name: 'Calculadora', value: 0 },
     { name: 'Formulario', value: 0 },
   ];
+
+  // Pagination for activity
+  const activities = stats?.recentActivity || [];
+  const totalPages = Math.ceil(activities.length / ITEMS_PER_PAGE);
+  const paginatedActivities = activities.slice(
+    (activityPage - 1) * ITEMS_PER_PAGE,
+    activityPage * ITEMS_PER_PAGE
+  );
 
   return (
     <>
@@ -139,7 +170,7 @@ export default function Dashboard() {
             color="red"
           />
           <StatsCard
-            title="Clientes Nuevos (7 días)"
+            title="Clientes Nuevos (7 dias)"
             value={isLoading ? '...' : stats?.clientesNuevos || 0}
             icon={TrendingUp}
             color="green"
@@ -159,38 +190,46 @@ export default function Dashboard() {
             data={stats?.sourceData || defaultSourceData}
             type="pie"
             dataKey="value"
-            title="Distribución de leads"
+            title="Distribucion de leads"
           />
         </div>
 
         {/* Recent Activity */}
         <div className="mt-8 bg-white dark:bg-black/30 border border-gray-200 dark:border-gold/20 rounded-xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Actividad Reciente</h3>
-          <div className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Actividad Reciente</h3>
+            {activities.length > 0 && (
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {activities.length} registros
+              </span>
+            )}
+          </div>
+          <div className="space-y-3">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gold"></div>
               </div>
-            ) : stats?.recentActivity && stats.recentActivity.length > 0 ? (
-              stats.recentActivity.map((activity, index) => {
-                const Icon = getActivityIcon(activity.source);
+            ) : paginatedActivities.length > 0 ? (
+              paginatedActivities.map((activity, index) => {
+                const Icon = getActivityIcon(activity.source, activity.type);
+                const label = getActivityLabel(activity);
                 return (
                   <div
                     key={index}
                     className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-black/30 rounded-lg border border-gray-100 dark:border-gold/10"
                   >
-                    <div className="w-10 h-10 bg-gold/20 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gold/20 rounded-full flex items-center justify-center flex-shrink-0">
                       <Icon className="w-5 h-5 text-gold" />
                     </div>
-                    <div className="flex-1">
-                      <p className="text-gray-900 dark:text-white text-sm">
-                        {activity.type === 'lead' ? 'Nuevo lead' : 'Nuevo cliente'}: <span className="font-medium">{activity.name}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-gray-900 dark:text-white text-sm truncate">
+                        {label}: <span className="font-medium">{activity.name}</span>
                       </p>
                       <p className="text-gray-500 text-xs">
                         {activity.source} - {formatTimeAgo(activity.date)}
                       </p>
                     </div>
-                    <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(activity.status)}`}>
+                    <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${getStatusColor(activity.status)}`}>
                       {activity.status || 'Pendiente'}
                     </span>
                   </div>
@@ -202,6 +241,31 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gold/10">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                Pagina {activityPage} de {totalPages}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setActivityPage(p => Math.max(1, p - 1))}
+                  disabled={activityPage === 1}
+                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-gold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setActivityPage(p => Math.min(totalPages, p + 1))}
+                  disabled={activityPage === totalPages}
+                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-gold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

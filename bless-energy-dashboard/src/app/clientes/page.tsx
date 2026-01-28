@@ -189,11 +189,14 @@ export default function ClientesPage() {
       .map((row) => {
         const obj: Record<string, string> = {};
         headers.forEach((header) => {
-          obj[header] = String(row[header] || '');
+          obj[header] = String(row[header] || '').trim();
         });
         return obj;
       })
-      .filter(obj => Object.values(obj).some(v => v.trim() !== ''));
+      .filter(obj => {
+        const nonEmptyCount = Object.values(obj).filter(v => v && v.trim().length > 0).length;
+        return nonEmptyCount >= 2;
+      });
 
     const ws = XLSX.utils.json_to_sheet(exportData);
 
