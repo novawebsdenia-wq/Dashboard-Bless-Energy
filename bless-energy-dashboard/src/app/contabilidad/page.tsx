@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 import DataTable from '@/components/DataTable';
 import TabSelector from '@/components/TabSelector';
 import * as XLSX from 'xlsx';
-import { Receipt, Percent, Calculator } from 'lucide-react';
+import { Receipt, Percent, Calculator, Filter, X } from 'lucide-react';
 
 interface Tab {
   sheetId?: number;
@@ -18,6 +18,15 @@ export default function ContabilidadPage() {
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<Record<string, string | number>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [priceFrom, setPriceFrom] = useState('');
+  const [priceTo, setPriceTo] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterPayment, setFilterPayment] = useState('');
 
   const fetchTabs = async () => {
     try {
@@ -83,7 +92,8 @@ export default function ContabilidadPage() {
   };
 
   const handleExport = () => {
-    const exportData = rows.map((row) => {
+    const dataToExport = hasActiveFilters ? filteredRows : rows;
+    const exportData = dataToExport.map((row) => {
       const obj: Record<string, string> = {};
       headers.forEach((header) => {
         obj[header] = String(row[header] || '');
@@ -135,18 +145,121 @@ export default function ContabilidadPage() {
     return null;
   };
 
-  // Calculate specific totals
+  // Parse date from DD/MM/YYYY or DD-MM-YYYY format
+  const parseFilterDate = (dateStr: string): Date | null => {
+    if (!dateStr) return null;
+    const str = String(dateStr).trim();
+    const parts = str.split(/[\/\-\.]/);
+    if (parts.length === 3) {
+      const day = parseInt(parts[0]);
+      const month = parseInt(parts[1]) - 1;
+      let year = parseInt(parts[2]);
+      if (year < 100) year += 2000;
+      if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
+        return new Date(year, month, day);
+      }
+    }
+    return null;
+  };
+
+  // Get column keys for filtering
+  const fechaCol = findColumn(['fecha']);
+  const totalCol = findColumn(['total']);
+  const importeCol = findColumn(['importe', 'base', 'subtotal', 'neto']);
+  const categoriaCol = findColumn(['categoria', 'categoría', 'tipo']);
+  const metodoCol = findColumn(['metodo', 'método', 'pago', 'forma de pago']);
+  const priceCol = totalCol || importeCol;
+
+  // Extract unique categories and payment methods
+  const uniqueCategories = useMemo(() => {
+    if (!categoriaCol) return [];
+    const set = new Set<string>();
+    rows.forEach(row => {
+      const val = String(row[categoriaCol] || '').trim();
+      if (val) set.add(val);
+    });
+    return Array.from(set).sort();
+  }, [rows, categoriaCol]);
+
+  const uniquePayments = useMemo(() => {
+    if (!metodoCol) return [];
+    const set = new Set<string>();
+    rows.forEach(row => {
+      const val = String(row[metodoCol] || '').trim();
+      if (val) set.add(val);
+    });
+    return Array.from(set).sort();
+  }, [rows, metodoCol]);
+
+  // Apply filters
+  const filteredRows = useMemo(() => {
+    return rows.filter(row => {
+      // Date range filter
+      if (dateFrom || dateTo) {
+        if (!fechaCol) return true;
+        const rowDate = parseFilterDate(String(row[fechaCol] || ''));
+        if (!rowDate) return false;
+        if (dateFrom) {
+          const from = new Date(dateFrom);
+          from.setHours(0, 0, 0, 0);
+          if (rowDate < from) return false;
+        }
+        if (dateTo) {
+          const to = new Date(dateTo);
+          to.setHours(23, 59, 59, 999);
+          if (rowDate > to) return false;
+        }
+      }
+
+      // Price range filter
+      if (priceFrom || priceTo) {
+        if (!priceCol) return true;
+        const price = parseNumber(row[priceCol]);
+        if (priceFrom && price < parseFloat(priceFrom)) return false;
+        if (priceTo && price > parseFloat(priceTo)) return false;
+      }
+
+      // Category filter
+      if (filterCategory) {
+        if (!categoriaCol) return true;
+        const val = String(row[categoriaCol] || '').trim();
+        if (val !== filterCategory) return false;
+      }
+
+      // Payment method filter
+      if (filterPayment) {
+        if (!metodoCol) return true;
+        const val = String(row[metodoCol] || '').trim();
+        if (val !== filterPayment) return false;
+      }
+
+      return true;
+    });
+  }, [rows, dateFrom, dateTo, priceFrom, priceTo, filterCategory, filterPayment, fechaCol, priceCol, categoriaCol, metodoCol]);
+
+  const hasActiveFilters = dateFrom || dateTo || priceFrom || priceTo || filterCategory || filterPayment;
+
+  const clearFilters = () => {
+    setDateFrom('');
+    setDateTo('');
+    setPriceFrom('');
+    setPriceTo('');
+    setFilterCategory('');
+    setFilterPayment('');
+  };
+
+  // Calculate specific totals (using filtered rows)
   const calculations = useMemo(() => {
     // Find specific columns
     const importeCol = findColumn(['importe', 'base', 'subtotal', 'neto']);
     const ivaCol = findColumn(['iva']);
     const totalCol = findColumn(['total']);
-    
+
     let importeTotal = 0;
     let ivaTotal = 0;
     let totalGeneral = 0;
 
-    rows.forEach((row) => {
+    filteredRows.forEach((row) => {
       // Calculate Importe (base sin IVA)
       if (importeCol) {
         importeTotal += parseNumber(row[importeCol]);
@@ -179,7 +292,7 @@ export default function ContabilidadPage() {
       iva: { value: ivaTotal, column: ivaCol },
       total: { value: totalGeneral, column: totalCol },
     };
-  }, [headers, rows]);
+  }, [headers, filteredRows]);
 
   // Format currency
   const formatCurrency = (value: number) => {
@@ -202,64 +315,66 @@ export default function ContabilidadPage() {
 
       <div className="flex-1 p-6 overflow-y-auto">
         {/* Financial Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
           {/* Total Registros */}
-          <div className="bg-white dark:bg-black/30 border border-gray-200 dark:border-gold/20 rounded-xl p-4 shadow-sm">
+          <div className="bg-white dark:bg-black/30 border border-gray-200 dark:border-gold/20 rounded-xl p-3 sm:p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+              <div className="hidden sm:flex w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-lg items-center justify-center">
                 <Receipt className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </div>
               <div>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Facturas</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{rows.length}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Facturas</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                  {filteredRows.length}{hasActiveFilters ? ` / ${rows.length}` : ''}
+                </p>
               </div>
             </div>
           </div>
           
           {/* Importe (Base sin IVA) */}
           {calculations.importe.column && (
-            <div className="bg-white dark:bg-black/30 border border-blue-200 dark:border-blue-500/20 rounded-xl p-4 shadow-sm">
+            <div className="bg-white dark:bg-black/30 border border-blue-200 dark:border-blue-500/20 rounded-xl p-3 sm:p-4 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-lg flex items-center justify-center">
+                <div className="hidden sm:flex w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-lg items-center justify-center">
                   <Calculator className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">Base Imponible</p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Base Imponible</p>
+                  <p className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                     {formatCurrency(calculations.importe.value)}
                   </p>
                 </div>
               </div>
             </div>
           )}
-          
+
           {/* IVA */}
           {calculations.iva.column && (
-            <div className="bg-white dark:bg-black/30 border border-yellow-200 dark:border-yellow-500/20 rounded-xl p-4 shadow-sm">
+            <div className="bg-white dark:bg-black/30 border border-yellow-200 dark:border-yellow-500/20 rounded-xl p-3 sm:p-4 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                <div className="hidden sm:flex w-10 h-10 bg-yellow-100 dark:bg-yellow-500/20 rounded-lg items-center justify-center">
                   <Percent className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">Total IVA</p>
-                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Total IVA</p>
+                  <p className="text-lg sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                     {formatCurrency(calculations.iva.value)}
                   </p>
                 </div>
               </div>
             </div>
           )}
-          
+
           {/* Total (con IVA) */}
           {(calculations.total.column || (calculations.importe.column && calculations.iva.column)) && (
-            <div className="bg-white dark:bg-black/30 border border-green-200 dark:border-green-500/20 rounded-xl p-4 shadow-sm">
+            <div className="bg-white dark:bg-black/30 border border-green-200 dark:border-green-500/20 rounded-xl p-3 sm:p-4 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-lg flex items-center justify-center">
+                <div className="hidden sm:flex w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-lg items-center justify-center">
                   <Receipt className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">Total (con IVA)</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Total (con IVA)</p>
+                  <p className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">
                     {formatCurrency(calculations.total.value)}
                   </p>
                 </div>
@@ -277,6 +392,131 @@ export default function ContabilidadPage() {
           </div>
         )}
 
+        {/* Filter Toggle & Panel */}
+        <div className="mb-4">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              hasActiveFilters
+                ? 'bg-gold/20 text-gold border border-gold/30'
+                : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+            {hasActiveFilters && (
+              <span className="bg-gold text-black text-xs px-1.5 py-0.5 rounded-full font-bold">
+                {[dateFrom || dateTo, priceFrom || priceTo, filterCategory, filterPayment].filter(Boolean).length}
+              </span>
+            )}
+          </button>
+
+          {showFilters && (
+            <div className="mt-3 bg-white dark:bg-black/30 border border-gray-200 dark:border-gold/20 rounded-xl p-4 shadow-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Date Range */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+                    Fecha desde
+                  </label>
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gold/20 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+                    Fecha hasta
+                  </label>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gold/20 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50"
+                  />
+                </div>
+
+                {/* Price Range */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+                    Precio min
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={priceFrom}
+                    onChange={(e) => setPriceFrom(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gold/20 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+                    Precio max
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="999999"
+                    value={priceTo}
+                    onChange={(e) => setPriceTo(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gold/20 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50"
+                  />
+                </div>
+
+                {/* Category */}
+                {uniqueCategories.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+                      Categoria
+                    </label>
+                    <select
+                      value={filterCategory}
+                      onChange={(e) => setFilterCategory(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gold/20 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50"
+                    >
+                      <option value="">Todas</option>
+                      {uniqueCategories.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Payment Method */}
+                {uniquePayments.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+                      Metodo de pago
+                    </label>
+                    <select
+                      value={filterPayment}
+                      onChange={(e) => setFilterPayment(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gold/20 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50"
+                    >
+                      <option value="">Todos</option>
+                      {uniquePayments.map((method) => (
+                        <option key={method} value={method}>{method}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Clear filters */}
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="mt-4 flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         {tabs.length > 1 && (
           <TabSelector
             tabs={tabs}
@@ -287,7 +527,7 @@ export default function ContabilidadPage() {
 
         <DataTable
           headers={headers}
-          rows={rows}
+          rows={filteredRows}
           onUpdate={handleUpdate}
           onExport={handleExport}
           isLoading={isLoading}
