@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Header from '@/components/Header';
 import DataTable from '@/components/DataTable';
 import TabSelector from '@/components/TabSelector';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { Receipt, Percent, Calculator, Filter, X } from 'lucide-react';
 
 interface Tab {
@@ -93,13 +93,15 @@ export default function ContabilidadPage() {
 
   const handleExport = () => {
     const dataToExport = hasActiveFilters ? filteredRows : rows;
-    const exportData = dataToExport.map((row) => {
-      const obj: Record<string, string> = {};
-      headers.forEach((header) => {
-        obj[header] = String(row[header] || '');
-      });
-      return obj;
-    });
+    const exportData = dataToExport
+      .map((row) => {
+        const obj: Record<string, string> = {};
+        headers.forEach((header) => {
+          obj[header] = String(row[header] || '');
+        });
+        return obj;
+      })
+      .filter(obj => Object.values(obj).some(v => v.trim() !== ''));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
 
@@ -112,6 +114,18 @@ export default function ContabilidadPage() {
       return { wch: Math.min(Math.max(maxLen + 2, 12), 60) };
     });
     ws['!cols'] = colWidths;
+
+    // Style header row with gold background and black bold text
+    headers.forEach((_, idx) => {
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c: idx });
+      if (ws[cellRef]) {
+        ws[cellRef].s = {
+          fill: { fgColor: { rgb: 'D4AF37' } },
+          font: { bold: true, color: { rgb: '000000' }, sz: 11 },
+          alignment: { horizontal: 'center', vertical: 'center' },
+        };
+      }
+    });
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, activeTab || 'Contabilidad');

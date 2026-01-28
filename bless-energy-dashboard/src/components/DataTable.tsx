@@ -16,7 +16,7 @@ import {
 // Status options for different fields
 const STATUS_OPTIONS = ['Pendiente', 'Contactado', 'En proceso', 'Cerrado', 'Cancelado'];
 const PRIORITY_OPTIONS_EMAIL = ['Baja', 'Normal', 'Media', 'Alta', 'Critica'];
-const PRIORITY_OPTIONS_DEFAULT = ['Baja', 'Media', 'Alta'];
+const PRIORITY_OPTIONS_DEFAULT = ['Baja', 'Normal', 'Alta', 'Urgente'];
 const CLIENT_STATUS_OPTIONS = ['Nuevo', 'Activo', 'En proceso', 'Inactivo'];
 
 interface DataTableProps {
@@ -48,6 +48,8 @@ export default function DataTable({
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [expandedCard, setExpandedCard] = useState<number | null>(null);
+  // Optimistic updates - store temporary values while saving
+  const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, string>>({});
 
   const rowsPerPage = 10;
 
@@ -190,6 +192,11 @@ export default function DataTable({
     if (!onUpdate) return;
 
     const rowIndex = Number(row.rowIndex) || 0;
+    const optimisticKey = `${rowIndex}-${header}`;
+
+    // Set optimistic update immediately for instant UI feedback
+    setOptimisticUpdates(prev => ({ ...prev, [optimisticKey]: newValue }));
+
     const values = headers.map((h) => {
       if (h === header) return newValue;
       return String(row[h] || '');
@@ -200,7 +207,23 @@ export default function DataTable({
       await onUpdate(rowIndex, values);
     } finally {
       setIsSaving(false);
+      // Clear optimistic update after save completes (data will be refreshed)
+      setOptimisticUpdates(prev => {
+        const updated = { ...prev };
+        delete updated[optimisticKey];
+        return updated;
+      });
     }
+  };
+
+  // Helper to get the current value (optimistic or actual)
+  const getCurrentValue = (row: Record<string, string | number>, header: string): string => {
+    const rowIndex = Number(row.rowIndex) || 0;
+    const optimisticKey = `${rowIndex}-${header}`;
+    if (optimisticUpdates[optimisticKey] !== undefined) {
+      return optimisticUpdates[optimisticKey];
+    }
+    return String(row[header] || '');
   };
 
   const handleExportClick = (e: React.MouseEvent) => {
@@ -280,7 +303,7 @@ export default function DataTable({
               const nameValue = String(row[nameHeader] || '-');
               const dateValue = dateHeader ? String(row[dateHeader] || '') : '';
               const emailValue = emailHeader ? String(row[emailHeader] || '') : '';
-              const statusValue = statusHeader ? String(row[statusHeader] || '') : '';
+              const statusValue = statusHeader ? getCurrentValue(row, statusHeader) : '';
 
               // Fields to show in expanded view (exclude those already in preview)
               const previewKeys = new Set([nameHeader, dateHeader, emailHeader, statusHeader].filter(Boolean));
@@ -377,7 +400,7 @@ export default function DataTable({
                         {expandedHeaders.map((header) => {
                           const fieldType = getFieldType(header);
                           const options = getOptionsForField(header);
-                          const currentValue = String(row[header] || '');
+                          const currentValue = getCurrentValue(row, header);
                           const showAsBadge = shouldShowAsBadge(header);
 
                           return (
@@ -545,7 +568,7 @@ export default function DataTable({
                     {visibleHeaders.map((header) => {
                       const fieldType = getFieldType(header);
                       const options = getOptionsForField(header);
-                      const currentValue = String(row[header] || '');
+                      const currentValue = getCurrentValue(row, header);
                       const showAsBadge = shouldShowAsBadge(header);
 
                       return (
@@ -686,6 +709,9 @@ function getPriorityClass(priority: string): string {
   if (p.includes('critica') || p.includes('crítica')) {
     return 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400';
   }
+  if (p.includes('urgente')) {
+    return 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400';
+  }
   if (p.includes('alta')) {
     return 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400';
   }
@@ -717,7 +743,7 @@ function getStatusClass(status: string): string {
     return 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400';
   }
   // Priority colors for selectors
-  if (s.includes('critica') || s.includes('crítica')) {
+  if (s.includes('critica') || s.includes('crítica') || s.includes('urgente')) {
     return 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400';
   }
   if (s.includes('alta')) {
