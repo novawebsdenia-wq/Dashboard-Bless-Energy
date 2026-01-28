@@ -104,7 +104,14 @@ export default function ContabilidadPage() {
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, activeTab || 'Contabilidad');
-    XLSX.writeFile(wb, `contabilidad_${activeTab || 'datos'}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `contabilidad_${activeTab || 'datos'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // Parse a number from various formats
@@ -181,15 +188,7 @@ export default function ContabilidadPage() {
     return Array.from(set).sort();
   }, [rows, categoriaCol]);
 
-  const uniquePayments = useMemo(() => {
-    if (!metodoCol) return [];
-    const set = new Set<string>();
-    rows.forEach(row => {
-      const val = String(row[metodoCol] || '').trim();
-      if (val) set.add(val);
-    });
-    return Array.from(set).sort();
-  }, [rows, metodoCol]);
+  const PAYMENT_METHODS = ['Efectivo', 'Tarjeta', 'Transferencia', 'Desconocido'];
 
   // Apply filters
   const filteredRows = useMemo(() => {
@@ -484,7 +483,7 @@ export default function ContabilidadPage() {
                 )}
 
                 {/* Payment Method */}
-                {uniquePayments.length > 0 && (
+                {metodoCol && (
                   <div>
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
                       Metodo de pago
@@ -495,7 +494,7 @@ export default function ContabilidadPage() {
                       className="w-full px-3 py-2 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gold/20 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50"
                     >
                       <option value="">Todos</option>
-                      {uniquePayments.map((method) => (
+                      {PAYMENT_METHODS.map((method) => (
                         <option key={method} value={method}>{method}</option>
                       ))}
                     </select>

@@ -116,14 +116,26 @@ export default function EmailsPage() {
     return null;
   };
 
-  const fechaCol = findColumn(['fecha']);
+  const fechaCol = findColumn(['fecha', 'date', 'dia', 'enviado', 'recibido', 'timestamp', 'created']);
+
+  // Parse date - handles DD/MM/YYYY and also ISO/timestamp formats
+  const parseDateValue = (dateStr: string): Date | null => {
+    // First try DD/MM/YYYY format
+    const ddmmResult = parseFilterDate(dateStr);
+    if (ddmmResult) return ddmmResult;
+
+    // Try ISO / standard Date parsing (YYYY-MM-DD, timestamps, etc.)
+    if (!dateStr || !dateStr.trim()) return null;
+    const d = new Date(dateStr.trim());
+    return isNaN(d.getTime()) ? null : d;
+  };
 
   // Apply filters and sort
   const filteredRows = useMemo(() => {
     let result = rows.filter(row => {
       if (dateFrom || dateTo) {
         if (!fechaCol) return true;
-        const rowDate = parseFilterDate(String(row[fechaCol] || ''));
+        const rowDate = parseDateValue(String(row[fechaCol] || ''));
         if (!rowDate) return false;
         if (dateFrom) {
           const from = new Date(dateFrom);
@@ -141,8 +153,8 @@ export default function EmailsPage() {
 
     if (sortOrder && fechaCol) {
       result = [...result].sort((a, b) => {
-        const dateA = parseFilterDate(String(a[fechaCol] || ''));
-        const dateB = parseFilterDate(String(b[fechaCol] || ''));
+        const dateA = parseDateValue(String(a[fechaCol] || ''));
+        const dateB = parseDateValue(String(b[fechaCol] || ''));
         if (!dateA && !dateB) return 0;
         if (!dateA) return 1;
         if (!dateB) return -1;
@@ -150,6 +162,11 @@ export default function EmailsPage() {
           ? dateB.getTime() - dateA.getTime()
           : dateA.getTime() - dateB.getTime();
       });
+    }
+
+    // Fallback sort by row order if no date column found
+    if (sortOrder && !fechaCol) {
+      result = sortOrder === 'recent' ? [...result].reverse() : result;
     }
 
     return result;
@@ -176,7 +193,14 @@ export default function EmailsPage() {
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, activeTab);
-    XLSX.writeFile(wb, `emails_${activeTab}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `emails_${activeTab}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
