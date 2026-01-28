@@ -14,7 +14,17 @@ interface HeaderProps {
 }
 
 export default function Header({ title, subtitle, onRefresh, isLoading }: HeaderProps) {
-  const { unreadCount, isOpen, setIsOpen, notifications, markAsRead, markAllAsRead } = useNotifications();
+  const {
+    unreadCount,
+    isOpen,
+    setIsOpen,
+    notifications,
+    markAsRead,
+    markAllAsRead,
+    pushEnabled,
+    pushPermission,
+    togglePushNotifications,
+  } = useNotifications();
 
   return (
     <>
@@ -42,7 +52,7 @@ export default function Header({ title, subtitle, onRefresh, isLoading }: Header
             <ThemeToggle />
 
             {/* Notifications */}
-            <button 
+            <button
               onClick={() => setIsOpen(true)}
               className="relative p-2 text-gray-500 dark:text-gray-400 hover:text-gold transition-colors"
             >
@@ -75,6 +85,9 @@ export default function Header({ title, subtitle, onRefresh, isLoading }: Header
         notifications={notifications}
         onMarkAsRead={markAsRead}
         onMarkAllAsRead={markAllAsRead}
+        pushEnabled={pushEnabled}
+        pushPermission={pushPermission}
+        onTogglePush={togglePushNotifications}
       />
     </>
   );

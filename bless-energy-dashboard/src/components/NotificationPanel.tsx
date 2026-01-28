@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, X, Check, Calculator, FileText, Users, Mail } from 'lucide-react';
+import { Bell, X, Check, FileText, Users, Mail, BellRing, BellOff } from 'lucide-react';
 import { Notification } from '@/context/NotificationContext';
 
 interface NotificationPanelProps {
@@ -9,6 +9,9 @@ interface NotificationPanelProps {
   notifications: Notification[];
   onMarkAsRead: (id: string) => void;
   onMarkAllAsRead: () => void;
+  pushEnabled?: boolean;
+  pushPermission?: NotificationPermission;
+  onTogglePush?: () => void;
 }
 
 const iconMap = {
@@ -31,6 +34,9 @@ export default function NotificationPanel({
   notifications,
   onMarkAsRead,
   onMarkAllAsRead,
+  pushEnabled = false,
+  pushPermission = 'default',
+  onTogglePush,
 }: NotificationPanelProps) {
   if (!isOpen) return null;
 
@@ -65,6 +71,49 @@ export default function NotificationPanel({
           </button>
         </div>
 
+        {/* Push notification toggle */}
+        {onTogglePush && (
+          <div className="p-4 border-b border-gray-100 dark:border-gold/10 bg-gray-50 dark:bg-black/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {pushEnabled ? (
+                  <BellRing className="w-5 h-5 text-gold" />
+                ) : (
+                  <BellOff className="w-5 h-5 text-gray-400" />
+                )}
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    Alertas en el navegador
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {pushEnabled
+                      ? 'Recibirás alertas cuando lleguen nuevos registros'
+                      : 'Activa para recibir alertas de nuevos clientes, leads o emails'
+                    }
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onTogglePush}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  pushEnabled ? 'bg-gold' : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    pushEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+            {pushPermission === 'denied' && (
+              <p className="mt-2 text-xs text-red-500">
+                Has bloqueado las notificaciones. Activalas en la configuracion del navegador.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Mark all as read */}
         {unreadCount > 0 && (
           <div className="p-2 border-b border-gray-100 dark:border-gold/10">
@@ -89,7 +138,7 @@ export default function NotificationPanel({
               {notifications.map((notification) => {
                 const Icon = iconMap[notification.type] || Bell;
                 const colorClass = colorMap[notification.type] || colorMap.info;
-                
+
                 return (
                   <div
                     key={notification.id}
