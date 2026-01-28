@@ -102,6 +102,17 @@ export default function ContabilidadPage() {
     });
 
     const ws = XLSX.utils.json_to_sheet(exportData);
+
+    // Auto-fit column widths
+    const colWidths = headers.map(header => {
+      const maxLen = Math.max(
+        header.length,
+        ...exportData.map(row => String(row[header] || '').length)
+      );
+      return { wch: Math.min(Math.max(maxLen + 2, 12), 60) };
+    });
+    ws['!cols'] = colWidths;
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, activeTab || 'Contabilidad');
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
