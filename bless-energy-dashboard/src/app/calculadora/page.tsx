@@ -180,8 +180,9 @@ export default function CalculadoraPage() {
         return obj;
       })
       .filter(obj => {
-        const nonEmptyCount = Object.values(obj).filter(v => v && v.trim().length > 0).length;
-        return nonEmptyCount >= 2;
+        const values = headers.map(h => obj[h] || '');
+        const hasKeyField = values.slice(0, Math.min(3, values.length)).some(v => v.trim().length > 0);
+        return hasKeyField;
       });
 
     const ws = XLSX.utils.json_to_sheet(exportData);
