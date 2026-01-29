@@ -101,7 +101,7 @@ export default function EmailsPage() {
   };
 
   const fechaCol = findColumn(['fecha', 'date', 'dia', 'enviado', 'recibido', 'timestamp', 'created']);
-  const categoryCol = findColumn(['categoria', 'category', 'tipo', 'type']);
+  const categoryCol = findColumn(['categor', 'category', 'tipo', 'type', 'etiqueta', 'label']);
 
   const categories = useMemo(() => {
     if (!categoryCol) return [];
