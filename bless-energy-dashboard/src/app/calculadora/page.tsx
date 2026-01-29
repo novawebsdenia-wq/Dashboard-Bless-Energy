@@ -161,6 +161,8 @@ export default function CalculadoraPage() {
     return result;
   }, [rows, dateFrom, dateTo, sortOrder, fechaCol]);
 
+  const estadoKey = headers.find(h => h.toLowerCase().includes('estado')) || 'estado';
+
   const hasActiveFilters = dateFrom || dateTo || sortOrder;
 
   const clearFilters = () => {
@@ -237,6 +239,40 @@ export default function CalculadoraPage() {
       />
 
       <div className="flex-1 p-6 overflow-y-auto">
+        {/* Stats summary */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4 mb-4 sm:mb-6">
+          <div className="bg-white dark:bg-black/30 border border-gray-200 dark:border-gold/20 rounded-xl p-3 sm:p-4 shadow-sm col-span-2 sm:col-span-1">
+            <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Total registros</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+              {filteredRows.length}{hasActiveFilters ? ` / ${rows.length}` : ''}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-black/30 border border-yellow-200 dark:border-yellow-500/20 rounded-xl p-3 sm:p-4 shadow-sm">
+            <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Pendientes</p>
+            <p className="text-xl sm:text-2xl font-bold text-yellow-600 dark:text-yellow-500">
+              {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('pendiente')).length}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-black/30 border border-purple-200 dark:border-purple-500/20 rounded-xl p-3 sm:p-4 shadow-sm">
+            <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Contactados</p>
+            <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-500">
+              {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('contactado')).length}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-black/30 border border-blue-200 dark:border-blue-500/20 rounded-xl p-3 sm:p-4 shadow-sm">
+            <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">En proceso</p>
+            <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-500">
+              {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('proceso')).length}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-black/30 border border-green-200 dark:border-green-500/20 rounded-xl p-3 sm:p-4 shadow-sm">
+            <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Cerrados</p>
+            <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-500">
+              {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('cerrado')).length}
+            </p>
+          </div>
+        </div>
+
         {/* Filter Toggle & Panel */}
         <div className="mb-4">
           <div className="flex items-center gap-2">

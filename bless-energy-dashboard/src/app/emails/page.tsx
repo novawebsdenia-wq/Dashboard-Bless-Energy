@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 import DataTable from '@/components/DataTable';
 import TabSelector from '@/components/TabSelector';
 import * as XLSX from 'xlsx-js-style';
-import { Filter, X, ArrowDownUp } from 'lucide-react';
+import { Filter, X, ArrowDownUp, Tag } from 'lucide-react';
 
 interface Tab {
   sheetId?: number;
@@ -24,6 +24,7 @@ export default function EmailsPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest' | ''>('');
+  const [selectedCategory, setSelectedCategory] = useState('');
 
   const fetchTabs = async () => {
     try {
@@ -100,6 +101,12 @@ export default function EmailsPage() {
   };
 
   const fechaCol = findColumn(['fecha', 'date', 'dia', 'enviado', 'recibido', 'timestamp', 'created']);
+  const categoryCol = findColumn(['categoria', 'category', 'tipo', 'type']);
+
+  const categories = useMemo(() => {
+    if (!categoryCol) return [];
+    return [...new Set(rows.map(r => String(r[categoryCol] || '').trim()).filter(Boolean))].sort();
+  }, [rows, categoryCol]);
 
   // Parse date+time from DD/MM/YYYY HH:MM:SS or DD/MM/YYYY formats
   const parseDateValue = (dateStr: string): Date | null => {
@@ -129,6 +136,10 @@ export default function EmailsPage() {
   // Apply filters and sort
   const filteredRows = useMemo(() => {
     let result = rows.filter(row => {
+      if (selectedCategory && categoryCol) {
+        const rowCategory = String(row[categoryCol] || '').trim();
+        if (rowCategory !== selectedCategory) return false;
+      }
       if (dateFrom || dateTo) {
         if (!fechaCol) return true;
         const rowDate = parseDateValue(String(row[fechaCol] || ''));
@@ -166,14 +177,15 @@ export default function EmailsPage() {
     }
 
     return result;
-  }, [rows, dateFrom, dateTo, sortOrder, fechaCol]);
+  }, [rows, dateFrom, dateTo, sortOrder, fechaCol, selectedCategory, categoryCol]);
 
-  const hasActiveFilters = dateFrom || dateTo || sortOrder;
+  const hasActiveFilters = dateFrom || dateTo || sortOrder || selectedCategory;
 
   const clearFilters = () => {
     setDateFrom('');
     setDateTo('');
     setSortOrder('');
+    setSelectedCategory('');
   };
 
   const handleExport = () => {
@@ -259,10 +271,28 @@ export default function EmailsPage() {
               Filtros
               {hasActiveFilters && (
                 <span className="bg-gold text-black text-xs px-1.5 py-0.5 rounded-full font-bold">
-                  {[dateFrom || dateTo, sortOrder].filter(Boolean).length}
+                  {[dateFrom || dateTo, sortOrder, selectedCategory].filter(Boolean).length}
                 </span>
               )}
             </button>
+
+            {/* Category filter */}
+            {categories.length > 0 && (
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                  selectedCategory
+                    ? 'bg-gold/20 text-gold border border-gold/30'
+                    : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20'
+                } focus:outline-none focus:ring-2 focus:ring-gold/50`}
+              >
+                <option value="">Todas las categorias</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            )}
 
             <button
               onClick={() => setSortOrder(sortOrder === 'recent' ? '' : 'recent')}
@@ -290,7 +320,7 @@ export default function EmailsPage() {
 
           {showFilters && (
             <div className="mt-3 bg-white dark:bg-black/30 border border-gray-200 dark:border-gold/20 rounded-xl p-4 shadow-sm">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
                     Fecha desde
@@ -313,6 +343,23 @@ export default function EmailsPage() {
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gold/20 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50"
                   />
                 </div>
+                {categories.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+                      Categoria
+                    </label>
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gold/20 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/50"
+                    >
+                      <option value="">Todas</option>
+                      {categories.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {hasActiveFilters && (
