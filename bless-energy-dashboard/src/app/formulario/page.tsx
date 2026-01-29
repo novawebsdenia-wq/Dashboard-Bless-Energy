@@ -171,34 +171,49 @@ export default function FormularioPage() {
 
   const handleExport = () => {
     const dataToExport = hasActiveFilters ? filteredRows : rows;
+
+    // 1. Filter headers: only non-empty headers that have data in at least one row
+    const validHeaders = headers.filter(h => {
+      if (!h || !h.trim()) return false;
+      return dataToExport.some(row => String(row[h] || '').trim().length > 0);
+    });
+
+    // 2. Build export data using only valid headers, filter empty rows
     const exportData = dataToExport
       .map((row) => {
         const obj: Record<string, string> = {};
-        headers.forEach((header) => {
+        validHeaders.forEach((header) => {
           obj[header] = String(row[header] || '').trim();
         });
         return obj;
       })
       .filter(obj => {
-        const values = headers.map(h => obj[h] || '');
-        const hasKeyField = values.slice(0, Math.min(3, values.length)).some(v => v.trim().length > 0);
-        return hasKeyField;
+        const values = validHeaders.map(h => obj[h] || '');
+        return values.slice(0, Math.min(3, values.length)).some(v => v.trim().length > 0);
       });
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
+    if (exportData.length === 0) return;
 
-    // Auto-fit column widths
-    const colWidths = headers.map(header => {
+    // 3. Create sheet with explicit header order
+    const ws = XLSX.utils.json_to_sheet(exportData, { header: validHeaders });
+
+    // 4. Force exact range: header + data rows only
+    ws['!ref'] = XLSX.utils.encode_range({
+      s: { r: 0, c: 0 },
+      e: { r: exportData.length, c: validHeaders.length - 1 }
+    });
+
+    // 5. Auto-fit column widths
+    ws['!cols'] = validHeaders.map(header => {
       const maxLen = Math.max(
         header.length,
         ...exportData.map(row => String(row[header] || '').length)
       );
       return { wch: Math.min(Math.max(maxLen + 2, 12), 60) };
     });
-    ws['!cols'] = colWidths;
 
-    // Style header row with gold background and black bold text
-    headers.forEach((_, idx) => {
+    // 6. Style header row
+    validHeaders.forEach((_, idx) => {
       const cellRef = XLSX.utils.encode_cell({ r: 0, c: idx });
       if (ws[cellRef]) {
         ws[cellRef].s = {
