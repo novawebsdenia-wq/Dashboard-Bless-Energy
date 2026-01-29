@@ -23,7 +23,7 @@ interface DataTableProps {
   headers: string[];
   rows: Record<string, string | number>[];
   onUpdate?: (rowIndex: number, values: string[]) => Promise<void>;
-  onExport?: () => void;
+  onExport?: (displayedRows?: Record<string, string | number>[]) => void;
   isLoading?: boolean;
   showStatusSelectors?: boolean;
   pageType?: 'emails' | 'clientes' | 'formulario' | 'calculadora' | 'contabilidad' | 'default';
@@ -230,7 +230,7 @@ export default function DataTable({
     e.preventDefault();
     e.stopPropagation();
     if (onExport) {
-      onExport();
+      onExport(filteredRows);
     }
   };
 

@@ -169,8 +169,8 @@ export default function FormularioPage() {
     setSortOrder('');
   };
 
-  const handleExport = () => {
-    const dataToExport = hasActiveFilters ? filteredRows : rows;
+  const handleExport = (displayedRows?: Record<string, string | number>[]) => {
+    const dataToExport = displayedRows || filteredRows;
 
     // 1. Filter headers: only non-empty headers that have data in at least one row
     const validHeaders = headers.filter(h => {

@@ -171,8 +171,8 @@ export default function CalculadoraPage() {
     setSortOrder('');
   };
 
-  const handleExport = () => {
-    const dataToExport = hasActiveFilters ? filteredRows : rows;
+  const handleExport = (displayedRows?: Record<string, string | number>[]) => {
+    const dataToExport = displayedRows || filteredRows;
 
     const validHeaders = headers.filter(h => {
       if (!h || !h.trim()) return false;

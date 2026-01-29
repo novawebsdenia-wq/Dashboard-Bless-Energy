@@ -187,8 +187,8 @@ export default function ClientesPage() {
     setSortOrder('');
   };
 
-  const handleExportExcel = () => {
-    const dataToExport = hasActiveFilters ? filteredRows : rows;
+  const handleExportExcel = (displayedRows?: Record<string, string | number>[]) => {
+    const dataToExport = displayedRows || filteredRows;
 
     const validHeaders = headers.filter(h => {
       if (!h || !h.trim()) return false;
@@ -245,7 +245,7 @@ export default function ClientesPage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = (displayedRows?: Record<string, string | number>[]) => {
     const doc = new jsPDF('landscape');
 
     // Add title
@@ -257,8 +257,8 @@ export default function ClientesPage() {
     doc.setTextColor(100);
     doc.text(`Generado el ${new Date().toLocaleDateString('es-ES')}`, 14, 30);
 
-    // Prepare table data (use filtered rows)
-    const dataToExport = hasActiveFilters ? filteredRows : rows;
+    // Prepare table data (use displayed rows from DataTable search)
+    const dataToExport = displayedRows || filteredRows;
     const tableData = dataToExport.map((row) =>
       headers.map((header) => String(row[header] || ''))
     );
@@ -285,11 +285,11 @@ export default function ClientesPage() {
     doc.save(`clientes_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  const handleExport = () => {
+  const handleExport = (displayedRows?: Record<string, string | number>[]) => {
     if (exportFormat === 'pdf') {
-      handleExportPDF();
+      handleExportPDF(displayedRows);
     } else {
-      handleExportExcel();
+      handleExportExcel(displayedRows);
     }
   };
 
