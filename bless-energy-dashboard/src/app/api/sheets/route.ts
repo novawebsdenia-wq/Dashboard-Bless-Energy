@@ -16,23 +16,35 @@ export async function GET(request: NextRequest) {
   try {
     const spreadsheetId = SHEET_IDS[sheet as keyof typeof SHEET_IDS];
     const data = await getSheetData(spreadsheetId, `${tab}!A:Z`);
-    
-    // Transform to array of objects with row indices
-    const rows = data.rows.map((row, index) => {
-      const obj: Record<string, string | number> = { 
-        id: `${index + 2}`, // +2 because of header and 0-index
-        rowIndex: index + 2 
+
+    // Filter out empty headers and columns with no data
+    const validColumns: number[] = [];
+    data.headers.forEach((header, i) => {
+      if (!header || !header.trim()) return;
+      const hasData = data.rows.some(row => row[i] && String(row[i]).trim().length > 0);
+      if (hasData) validColumns.push(i);
+    });
+    const headers = validColumns.map(i => data.headers[i]);
+
+    // Transform to array of objects with row indices, only valid columns
+    const rows: Record<string, string | number>[] = [];
+    data.rows.forEach((row, originalIndex) => {
+      const nonEmpty = validColumns.filter(i => row[i] && String(row[i]).trim().length > 0).length;
+      if (nonEmpty < 1) return;
+      const obj: Record<string, string | number> = {
+        id: `${originalIndex + 2}`,
+        rowIndex: originalIndex + 2
       };
-      data.headers.forEach((header, i) => {
-        obj[header] = row[i] || '';
+      validColumns.forEach(i => {
+        obj[data.headers[i]] = row[i] || '';
       });
-      return obj;
+      rows.push(obj);
     });
 
     return NextResponse.json({
       success: true,
       data: {
-        headers: data.headers,
+        headers,
         rows,
         total: rows.length,
       },

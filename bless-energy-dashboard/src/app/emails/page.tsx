@@ -86,23 +86,6 @@ export default function EmailsPage() {
     }
   };
 
-  // Parse date from DD/MM/YYYY or DD-MM-YYYY format
-  const parseFilterDate = (dateStr: string): Date | null => {
-    if (!dateStr) return null;
-    const str = String(dateStr).trim();
-    const parts = str.split(/[\/\-\.]/);
-    if (parts.length === 3) {
-      const day = parseInt(parts[0]);
-      const month = parseInt(parts[1]) - 1;
-      let year = parseInt(parts[2]);
-      if (year < 100) year += 2000;
-      if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
-        return new Date(year, month, day);
-      }
-    }
-    return null;
-  };
-
   // Find column by keywords
   const findColumn = (keywords: string[]): string | null => {
     for (const header of headers) {
@@ -118,15 +101,28 @@ export default function EmailsPage() {
 
   const fechaCol = findColumn(['fecha', 'date', 'dia', 'enviado', 'recibido', 'timestamp', 'created']);
 
-  // Parse date - handles DD/MM/YYYY and also ISO/timestamp formats
+  // Parse date+time from DD/MM/YYYY HH:MM:SS or DD/MM/YYYY formats
   const parseDateValue = (dateStr: string): Date | null => {
-    // First try DD/MM/YYYY format
-    const ddmmResult = parseFilterDate(dateStr);
-    if (ddmmResult) return ddmmResult;
+    if (!dateStr || !String(dateStr).trim()) return null;
+    const str = String(dateStr).trim();
 
-    // Try ISO / standard Date parsing (YYYY-MM-DD, timestamps, etc.)
-    if (!dateStr || !dateStr.trim()) return null;
-    const d = new Date(dateStr.trim());
+    // Try DD/MM/YYYY with optional time (HH:MM or HH:MM:SS)
+    const ddmmMatch = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    if (ddmmMatch) {
+      const day = parseInt(ddmmMatch[1]);
+      const month = parseInt(ddmmMatch[2]) - 1;
+      let year = parseInt(ddmmMatch[3]);
+      if (year < 100) year += 2000;
+      const hours = ddmmMatch[4] ? parseInt(ddmmMatch[4]) : 0;
+      const minutes = ddmmMatch[5] ? parseInt(ddmmMatch[5]) : 0;
+      const seconds = ddmmMatch[6] ? parseInt(ddmmMatch[6]) : 0;
+      if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
+        return new Date(year, month, day, hours, minutes, seconds);
+      }
+    }
+
+    // Fallback: try native Date parsing (ISO, timestamps, etc.)
+    const d = new Date(str);
     return isNaN(d.getTime()) ? null : d;
   };
 
