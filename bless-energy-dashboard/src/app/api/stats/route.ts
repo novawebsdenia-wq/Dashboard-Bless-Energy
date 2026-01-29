@@ -75,6 +75,22 @@ export async function GET() {
       return null;
     };
 
+    // Helper to filter out empty rows (same logic as /api/sheets endpoint)
+    // A row is valid if at least one of the first 3 key columns has content
+    const filterValidRows = (data: { headers: string[]; rows: string[][] }) => {
+      const validColumns: number[] = [];
+      data.headers.forEach((header, i) => {
+        if (!header || !header.trim()) return;
+        const hasData = data.rows.some(row => row[i] && String(row[i]).trim().length > 0);
+        if (hasData) validColumns.push(i);
+      });
+      const firstKeyColumns = validColumns.slice(0, Math.min(3, validColumns.length));
+
+      return data.rows.filter((row) => {
+        return firstKeyColumns.some(i => row[i] && String(row[i]).trim().length > 0);
+      });
+    };
+
     // Calculate new clients from last 7 days
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -84,27 +100,28 @@ export async function GET() {
       (h) => h.toLowerCase().includes('fecha')
     );
 
+    const validClienteRows = filterValidRows(clientesData);
     let clientesNuevos = 0;
     if (clientFechaIdx >= 0) {
-      clientesNuevos = clientesData.rows.filter((row) => {
+      clientesNuevos = validClienteRows.filter((row) => {
         const fecha = parseDate(row[clientFechaIdx]);
         return fecha && fecha >= sevenDaysAgo;
       }).length;
     } else {
-      // If no date column, count all as new
-      clientesNuevos = clientesData.rows.length;
+      clientesNuevos = validClienteRows.length;
     }
 
-    // Calculate pending leads
+    // Calculate pending leads (only from valid/non-empty rows)
     const countPending = (data: { headers: string[]; rows: string[][] }) => {
       const estadoIndex = data.headers.findIndex(
         (h) => h.toLowerCase().includes('estado')
       );
-      if (estadoIndex < 0) return data.rows.length; // All are pending if no status
-      
-      return data.rows.filter((row) => {
+      const validRows = filterValidRows(data);
+      if (estadoIndex < 0) return validRows.length; // All are pending if no status column
+
+      return validRows.filter((row) => {
         const estado = row[estadoIndex]?.toLowerCase() || '';
-        return !estado || estado.includes('pendiente') || estado.includes('nuevo');
+        return estado.includes('pendiente') || estado.includes('nuevo') || !estado;
       }).length;
     };
 
@@ -113,17 +130,22 @@ export async function GET() {
     // Build recent activity
     const recentActivity = getRecentActivity(calculadoraData, formularioData, clientesData, emailsData, parseDate);
 
-    // Calculate stats
+    // Calculate stats using filtered rows for consistency with individual pages
+    const validEmails = filterValidRows(emailsData);
+    const validLeads = filterValidRows(calculadoraData);
+    const validFormulario = filterValidRows(formularioData);
+    const validClientes = filterValidRows(clientesData);
+
     const stats = {
-      totalEmails: emailsData.rows.length,
-      totalLeads: calculadoraData.rows.length,
-      totalFormulario: formularioData.rows.length,
-      totalClientes: clientesData.rows.length,
+      totalEmails: validEmails.length,
+      totalLeads: validLeads.length,
+      totalFormulario: validFormulario.length,
+      totalClientes: validClientes.length,
       leadsPendientes,
       clientesNuevos,
       sourceData: [
-        { name: 'Calculadora', value: calculadoraData.rows.length },
-        { name: 'Formulario', value: formularioData.rows.length },
+        { name: 'Calculadora', value: validLeads.length },
+        { name: 'Formulario', value: validFormulario.length },
       ],
       recentActivity,
     };
