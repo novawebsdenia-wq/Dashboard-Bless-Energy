@@ -54,7 +54,7 @@ export default function StatsCard({
             {title}
           </p>
           <div className="flex items-baseline gap-1">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight drop-shadow-sm">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-gold transition-colors duration-300 tracking-tight drop-shadow-sm">
               {value}
             </h2>
           </div>

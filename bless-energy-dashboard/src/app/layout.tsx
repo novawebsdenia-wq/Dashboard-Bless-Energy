@@ -7,6 +7,7 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import SplashScreen from "@/components/SplashScreen";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -57,6 +58,7 @@ export default function RootLayout({
         <ThemeProvider>
           <NotificationProvider>
             <ToastProvider>
+              <SplashScreen />
               <ServiceWorkerRegister />
               <GlobalSearch />
               <div className="flex min-h-screen">

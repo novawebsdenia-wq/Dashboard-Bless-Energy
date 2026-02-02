@@ -94,7 +94,7 @@ const CustomLegend = ({ payload, chartData }: CustomLegendProps) => {
             style={{ backgroundColor: entry.color }}
           />
           <span className="text-xs font-bold text-gray-500 dark:text-gray-400 group-hover:text-gold transition-colors">
-            {entry.value}: <span className="text-gray-900 dark:text-white ml-1">{chartData?.[index]?.value || 0}</span>
+            {entry.value}: <span className="text-gray-900 dark:text-gold ml-1 font-black">{chartData?.[index]?.value || 0}</span>
           </span>
         </div>
       ))}

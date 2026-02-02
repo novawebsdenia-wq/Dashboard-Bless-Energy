@@ -202,14 +202,14 @@ export default function EmailsPage() {
               <>
                 <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-gray-200 dark:border-gold/20 rounded-xl p-4 shadow-sm col-span-2 sm:col-span-1 animate-fade-in">
                   <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Total registros</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gold transition-colors duration-300">
                     {filteredRows.length}{hasActiveFilters ? ` / ${rows.length}` : ''}
                   </p>
                 </div>
                 {estadoCol && (
                   <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-yellow-200 dark:border-yellow-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:100ms]">
                     <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Sin procesar</p>
-                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-500">
+                    <p className="text-2xl font-bold text-yellow-600 dark:text-gold transition-colors duration-300">
                       {filteredRows.filter(r => !String(r[estadoCol] || '').toLowerCase().includes('si') && !String(r[estadoCol] || '').toLowerCase().includes('true')).length}
                     </p>
                   </div>
@@ -237,16 +237,26 @@ export default function EmailsPage() {
                 )}
               </button>
 
-              <button
-                onClick={() => setSortOrder(sortOrder === 'recent' ? '' : 'recent')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${sortOrder === 'recent'
-                  ? 'bg-gold/20 text-gold border border-gold/30'
-                  : 'bg-white dark:bg-white/[0.05] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20'
-                  }`}
-              >
-                <ArrowDownUp className="w-3.5 h-3.5" />
-                Mas reciente
-              </button>
+              <div className="flex bg-white dark:bg-white/[0.05] border border-gray-200 dark:border-gold/20 rounded-xl overflow-hidden p-1 shadow-sm">
+                <button
+                  onClick={() => setSortOrder('recent')}
+                  className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'recent'
+                      ? 'bg-gold text-black shadow-sm'
+                      : 'text-gray-500 hover:text-gold'
+                    }`}
+                >
+                  Reciente
+                </button>
+                <button
+                  onClick={() => setSortOrder('oldest')}
+                  className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'oldest'
+                      ? 'bg-gold text-black shadow-sm'
+                      : 'text-gray-500 hover:text-gold'
+                    }`}
+                >
+                  Antiguo
+                </button>
+              </div>
 
               {hasActiveFilters && (
                 <button
