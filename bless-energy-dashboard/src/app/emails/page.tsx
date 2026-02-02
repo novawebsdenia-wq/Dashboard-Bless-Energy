@@ -258,6 +258,22 @@ export default function EmailsPage() {
                 </button>
               </div>
 
+              {categoriaCol && (
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm focus:outline-none focus:border-gold/50 ${selectedCategory
+                      ? 'bg-gold text-black border-gold/40'
+                      : 'bg-white dark:bg-white/[0.05] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gold/20 hover:border-gold/40'
+                    }`}
+                >
+                  <option value="">Categoría</option>
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              )}
+
               {hasActiveFilters && (
                 <button
                   onClick={() => {

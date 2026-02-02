@@ -58,14 +58,14 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const item = payload[0];
     return (
-      <div className="glass shadow-2xl rounded-2xl p-4 border border-gold/20 animate-in fade-in zoom-in-95 duration-200">
-        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">
+      <div className="shadow-2xl rounded-2xl p-4 border border-gold/20 animate-in fade-in zoom-in-95 duration-200 bg-white dark:bg-[#1a1a1a]">
+        <p className="text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">
           {item.payload?.name || label}
         </p>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: String(item.payload?.fill || item.color || '#D4AF37') }} />
-          <p className="text-xl font-black text-white">
-            {item.value} <span className="text-sm font-normal text-gray-500">leads</span>
+          <p className="text-xl font-black text-gray-900 dark:text-gold">
+            {item.value} <span className="text-sm font-normal text-gray-400 dark:text-gray-500">leads</span>
           </p>
         </div>
       </div>
