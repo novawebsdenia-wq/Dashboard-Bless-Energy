@@ -1,4 +1,3 @@
-const CACHE_NAME = 'bless-energy-v3';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

@@ -1,12 +1,11 @@
 'use client';
 
-import { X, User, Phone, Mail, MapPin, Calendar, Clock, Edit2, Save, Trash2, ExternalLink, ShieldCheck } from 'lucide-react';
+import { X, User, Phone, Mail, MapPin, Calendar, Clock, Edit2, Trash2, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 
 interface DetailSidePanelProps {
     isOpen: boolean;
     onClose: () => void;
-    title: string;
     data: Record<string, string | number>;
     headers: string[];
     onUpdate?: (values: string[]) => Promise<void>;
@@ -16,7 +15,6 @@ interface DetailSidePanelProps {
 export function DetailSidePanel({
     isOpen,
     onClose,
-    title,
     data,
     headers,
     onUpdate,

@@ -11,7 +11,6 @@ import {
   X,
   Download,
   ExternalLink,
-  Eye,
 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { DetailSidePanel } from './DetailSidePanel';
@@ -183,7 +182,7 @@ export default function DataTable({
           title: 'Registro actualizado',
           message: 'Los cambios se han guardado correctamente en Google Sheets.'
         });
-      } catch (error) {
+      } catch {
         toast({
           type: 'error',
           title: 'Error al guardar',
@@ -749,7 +748,6 @@ export default function DataTable({
         <DetailSidePanel
           isOpen={isDetailOpen}
           onClose={() => setIsDetailOpen(false)}
-          title="Detalle del Registro"
           data={selectedRowForDetail}
           headers={headers}
           type={pageType === 'emails' ? 'Email' : pageType === 'clientes' ? 'Cliente' : 'Lead'}

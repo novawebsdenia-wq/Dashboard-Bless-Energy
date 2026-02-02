@@ -42,21 +42,25 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   // Load push settings on mount
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    const initPushSettings = () => {
+      if (typeof window === 'undefined') return;
 
-    const savedSettings = localStorage.getItem(PUSH_SETTINGS_KEY);
-    if (savedSettings) {
-      try {
-        const settings = JSON.parse(savedSettings);
-        setPushEnabled(settings.enabled || false);
-      } catch {
-        // Ignore parse errors
+      const savedSettings = localStorage.getItem(PUSH_SETTINGS_KEY);
+      if (savedSettings) {
+        try {
+          const settings = JSON.parse(savedSettings);
+          setPushEnabled(settings.enabled || false);
+        } catch {
+          // Ignore parse errors
+        }
       }
-    }
 
-    if ('Notification' in window) {
-      setPushPermission(Notification.permission);
-    }
+      if ('Notification' in window) {
+        setPushPermission(Notification.permission);
+      }
+    };
+
+    initPushSettings();
   }, []);
 
   // Show browser push notification

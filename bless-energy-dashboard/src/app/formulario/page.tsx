@@ -3,18 +3,12 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import Header from '@/components/Header';
 import DataTable from '@/components/DataTable';
-import TabSelector from '@/components/TabSelector';
 import { Filter, X, ArrowDownUp } from 'lucide-react';
 import { exportToExcel } from '@/lib/exportUtils';
 import { TableSkeleton, StatsCardSkeleton } from '@/components/Skeleton';
 
-interface Tab {
-  sheetId?: number;
-  title?: string;
-}
 
 export default function FormularioPage() {
-  const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTab, setActiveTab] = useState('');
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<Record<string, string | number>[]>([]);
@@ -26,12 +20,11 @@ export default function FormularioPage() {
   const [dateTo, setDateTo] = useState('');
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest' | ''>('');
 
-  const fetchTabs = async () => {
+  const fetchTabs = useCallback(async () => {
     try {
       const response = await fetch('/api/sheets/tabs?sheet=formulario');
       const data = await response.json();
       if (data.success && data.data) {
-        setTabs(data.data);
         if (data.data.length > 0 && !activeTab) {
           setActiveTab(data.data[0].title);
         }
@@ -39,7 +32,7 @@ export default function FormularioPage() {
     } catch (error) {
       console.error('Error fetching tabs:', error);
     }
-  };
+  }, [activeTab]);
 
   const fetchData = useCallback(async () => {
     if (!activeTab) return;
@@ -60,7 +53,7 @@ export default function FormularioPage() {
 
   useEffect(() => {
     fetchTabs();
-  }, []);
+  }, [fetchTabs]);
 
   useEffect(() => {
     if (activeTab) {
@@ -99,55 +92,40 @@ export default function FormularioPage() {
       const month = parseInt(ddmmMatch[2]) - 1;
       let year = parseInt(ddmmMatch[3]);
       if (year < 100) year += 2000;
-      const hours = ddmmMatch[4] ? parseInt(ddmmMatch[4]) : 0;
-      const minutes = ddmmMatch[5] ? parseInt(ddmmMatch[5]) : 0;
-      const seconds = ddmmMatch[6] ? parseInt(ddmmMatch[6]) : 0;
-      if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
-        return new Date(year, month, day, hours, minutes, seconds);
-      }
+      const hour = ddmmMatch[4] ? parseInt(ddmmMatch[4]) : 0;
+      const minute = ddmmMatch[5] ? parseInt(ddmmMatch[5]) : 0;
+      const second = ddmmMatch[6] ? parseInt(ddmmMatch[6]) : 0;
+      return new Date(year, month, day, hour, minute, second);
     }
-    const d = new Date(str);
-    return isNaN(d.getTime()) ? null : d;
+    const isoDate = new Date(str);
+    return isNaN(isoDate.getTime()) ? null : isoDate;
   };
 
-  // Find column by keywords
-  const findColumn = (keywords: string[]): string | null => {
-    for (const header of headers) {
-      const headerLower = header.toLowerCase();
-      for (const keyword of keywords) {
-        if (headerLower.includes(keyword.toLowerCase())) {
-          return header;
-        }
-      }
-    }
-    return null;
-  };
+  const fechaCol = headers.find(h => h.toLowerCase().includes('fecha', 0)) || headers[0];
 
-  const fechaCol = findColumn(['fecha']);
-
-  // Apply filters and sort
   const filteredRows = useMemo(() => {
-    let result = rows.filter(row => {
-      if (dateFrom || dateTo) {
-        if (!fechaCol) return true;
-        const rowDate = parseFilterDate(String(row[fechaCol] || ''));
-        if (!rowDate) return false;
-        if (dateFrom) {
-          const from = new Date(dateFrom);
-          from.setHours(0, 0, 0, 0);
-          if (rowDate < from) return false;
-        }
-        if (dateTo) {
-          const to = new Date(dateTo);
-          to.setHours(23, 59, 59, 999);
-          if (rowDate > to) return false;
-        }
-      }
-      return true;
-    });
+    let result = [...rows];
 
-    if (sortOrder && fechaCol) {
-      result = [...result].sort((a, b) => {
+    if (dateFrom) {
+      const from = new Date(dateFrom);
+      from.setHours(0, 0, 0, 0);
+      result = result.filter(row => {
+        const rowDate = parseFilterDate(String(row[fechaCol] || ''));
+        return rowDate && rowDate >= from;
+      });
+    }
+
+    if (dateTo) {
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      result = result.filter(row => {
+        const rowDate = parseFilterDate(String(row[fechaCol] || ''));
+        return rowDate && rowDate <= to;
+      });
+    }
+
+    if (sortOrder) {
+      result.sort((a, b) => {
         const dateA = parseFilterDate(String(a[fechaCol] || ''));
         const dateB = parseFilterDate(String(b[fechaCol] || ''));
         if (!dateA && !dateB) return 0;
@@ -162,6 +140,8 @@ export default function FormularioPage() {
     return result;
   }, [rows, dateFrom, dateTo, sortOrder, fechaCol]);
 
+  const estadoKey = headers.find(h => h.toLowerCase().includes('estado')) || 'estado';
+
   const hasActiveFilters = dateFrom || dateTo || sortOrder;
 
   const clearFilters = () => {
@@ -173,18 +153,16 @@ export default function FormularioPage() {
   const handleExport = (displayedRows?: Record<string, string | number>[]) => {
     const dataToExport = displayedRows || filteredRows;
     exportToExcel(dataToExport, headers, {
-      filename: 'formulario_web',
-      sheetName: 'Formulario Web'
+      filename: 'formulario',
+      sheetName: activeTab
     });
   };
-
-  const estadoKey = headers.find(h => h.toLowerCase().includes('estado')) || 'estado';
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <Header
         title="Formulario Web"
-        subtitle="Contactos del formulario de la pagina web"
+        subtitle="Leads del formulario de contacto"
         onRefresh={fetchData}
         isLoading={isLoading}
       />
@@ -248,7 +226,7 @@ export default function FormularioPage() {
                   }`}
               >
                 <Filter className="w-3.5 h-3.5" />
-                Filtros
+                Filtros Avanzados
                 {hasActiveFilters && (
                   <span className="bg-black text-gold text-[9px] px-1.5 py-0.5 rounded-full font-black ml-1">
                     {[dateFrom || dateTo, sortOrder].filter(Boolean).length}
@@ -266,6 +244,16 @@ export default function FormularioPage() {
                 <ArrowDownUp className="w-3.5 h-3.5" />
                 Mas reciente
               </button>
+
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Limpiar
+                </button>
+              )}
             </div>
 
             {showFilters && (
@@ -287,14 +275,16 @@ export default function FormularioPage() {
           {isLoading ? (
             <TableSkeleton />
           ) : (
-            <DataTable
-              headers={headers}
-              rows={filteredRows}
-              onUpdate={handleUpdate}
-              onExport={handleExport}
-              isLoading={isLoading}
-              pageType="formulario"
-            />
+            <div className="bg-white dark:bg-black shadow-2xl rounded-3xl overflow-hidden border border-gray-100 dark:border-gold/10">
+              <DataTable
+                headers={headers}
+                rows={filteredRows}
+                onUpdate={handleUpdate}
+                onExport={handleExport}
+                isLoading={isLoading}
+                pageType="formulario"
+              />
+            </div>
           )}
         </div>
       </main>

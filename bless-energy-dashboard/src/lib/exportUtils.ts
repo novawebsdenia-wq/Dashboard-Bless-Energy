@@ -184,8 +184,7 @@ export const exportToPDF = (
         alternateRowStyles: {
             fillColor: [250, 250, 250],
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        didDrawPage: (data: any) => {
+        didDrawPage: () => {
             // Footer
             const pageCount = doc.getNumberOfPages();
             doc.setFontSize(8);

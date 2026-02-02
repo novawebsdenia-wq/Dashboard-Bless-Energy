@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, X, Users, Calculator, FileText, Mail, Receipt, ArrowRight } from 'lucide-react';
+import { Search, Users, Calculator, FileText, Mail, Receipt, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export function GlobalSearch() {
@@ -99,7 +99,7 @@ export function GlobalSearch() {
                         </div>
                     ) : (
                         <div className="p-12 text-center text-gray-400">
-                            No se encontraron resultados para "<span className="text-white">{query}</span>"
+                            No se encontraron resultados para &quot;<span className="text-white">{query}</span>&quot;
                         </div>
                     )}
                 </div>

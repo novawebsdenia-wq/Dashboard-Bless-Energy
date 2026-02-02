@@ -3,18 +3,12 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import Header from '@/components/Header';
 import DataTable from '@/components/DataTable';
-import TabSelector from '@/components/TabSelector';
-import { Filter, X, ArrowDownUp, Tag } from 'lucide-react';
+import { Filter, X, ArrowDownUp } from 'lucide-react';
 import { exportToExcel } from '@/lib/exportUtils';
 import { TableSkeleton, StatsCardSkeleton } from '@/components/Skeleton';
 
-interface Tab {
-  sheetId?: number;
-  title?: string;
-}
 
 export default function EmailsPage() {
-  const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTab, setActiveTab] = useState('mails');
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<Record<string, string | number>[]>([]);
@@ -27,12 +21,11 @@ export default function EmailsPage() {
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest' | ''>('');
   const [selectedCategory, setSelectedCategory] = useState('');
 
-  const fetchTabs = async () => {
+  const fetchTabs = useCallback(async () => {
     try {
       const response = await fetch('/api/sheets/tabs?sheet=emails');
       const data = await response.json();
       if (data.success && data.data) {
-        setTabs(data.data);
         if (data.data.length > 0 && !activeTab) {
           setActiveTab(data.data[0].title);
         }
@@ -40,7 +33,7 @@ export default function EmailsPage() {
     } catch (error) {
       console.error('Error fetching tabs:', error);
     }
-  };
+  }, [activeTab]);
 
   const fetchData = useCallback(async () => {
     if (!activeTab) return;
@@ -61,7 +54,7 @@ export default function EmailsPage() {
 
   useEffect(() => {
     fetchTabs();
-  }, []);
+  }, [fetchTabs]);
 
   useEffect(() => {
     fetchData();
@@ -89,7 +82,7 @@ export default function EmailsPage() {
   };
 
   // Find column by keywords
-  const findColumn = (keywords: string[]): string | null => {
+  const findColumn = useCallback((keywords: string[]): string | null => {
     for (const header of headers) {
       const headerLower = header.toLowerCase();
       for (const keyword of keywords) {
@@ -99,71 +92,69 @@ export default function EmailsPage() {
       }
     }
     return null;
-  };
-
-  const fechaCol = findColumn(['fecha', 'date', 'dia', 'enviado', 'recibido', 'timestamp', 'created']);
-  const categoryCol = findColumn(['categor', 'category', 'tipo', 'type', 'etiqueta', 'label']);
-  const estadoKey = findColumn(['estado']) || '';
-
-  const categories = useMemo(() => {
-    if (!categoryCol) return [];
-    return [...new Set(rows.map(r => String(r[categoryCol] || '').trim()).filter(Boolean))].sort();
-  }, [rows, categoryCol]);
+  }, [headers]);
 
   // Parse date+time from DD/MM/YYYY HH:MM:SS or DD/MM/YYYY formats
-  const parseDateValue = (dateStr: string): Date | null => {
-    if (!dateStr || !String(dateStr).trim()) return null;
+  const parseFilterDate = (dateStr: string): Date | null => {
+    if (!dateStr) return null;
     const str = String(dateStr).trim();
-
-    // Try DD/MM/YYYY with optional time (HH:MM or HH:MM:SS)
     const ddmmMatch = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
     if (ddmmMatch) {
       const day = parseInt(ddmmMatch[1]);
       const month = parseInt(ddmmMatch[2]) - 1;
       let year = parseInt(ddmmMatch[3]);
       if (year < 100) year += 2000;
-      const hours = ddmmMatch[4] ? parseInt(ddmmMatch[4]) : 0;
-      const minutes = ddmmMatch[5] ? parseInt(ddmmMatch[5]) : 0;
-      const seconds = ddmmMatch[6] ? parseInt(ddmmMatch[6]) : 0;
-      if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
-        return new Date(year, month, day, hours, minutes, seconds);
-      }
+      const hour = ddmmMatch[4] ? parseInt(ddmmMatch[4]) : 0;
+      const minute = ddmmMatch[5] ? parseInt(ddmmMatch[5]) : 0;
+      const second = ddmmMatch[6] ? parseInt(ddmmMatch[6]) : 0;
+      return new Date(year, month, day, hour, minute, second);
     }
-
-    // Fallback: try native Date parsing (ISO, timestamps, etc.)
-    const d = new Date(str);
-    return isNaN(d.getTime()) ? null : d;
+    const isoDate = new Date(str);
+    return isNaN(isoDate.getTime()) ? null : isoDate;
   };
 
-  // Apply filters and sort
+  const fechaCol = findColumn(['fecha', 'date', 'momento']);
+  const categoriaCol = findColumn(['categoria', 'category', 'tipo']);
+  const estadoCol = findColumn(['estado', 'status', 'procesado']);
+
+  // Get unique categories for filter
+  const categories = useMemo(() => {
+    if (!categoriaCol) return [];
+    const unique = new Set(rows.map(r => String(r[categoriaCol] || 'Otras')).filter(Boolean));
+    return Array.from(unique).sort();
+  }, [rows, categoriaCol]);
+
   const filteredRows = useMemo(() => {
-    let result = rows.filter(row => {
-      if (selectedCategory && categoryCol) {
-        const rowCategory = String(row[categoryCol] || '').trim();
-        if (rowCategory !== selectedCategory) return false;
-      }
-      if (dateFrom || dateTo) {
-        if (!fechaCol) return true;
-        const rowDate = parseDateValue(String(row[fechaCol] || ''));
-        if (!rowDate) return false;
-        if (dateFrom) {
-          const from = new Date(dateFrom);
-          from.setHours(0, 0, 0, 0);
-          if (rowDate < from) return false;
-        }
-        if (dateTo) {
-          const to = new Date(dateTo);
-          to.setHours(23, 59, 59, 999);
-          if (rowDate > to) return false;
-        }
-      }
-      return true;
-    });
+    let result = [...rows];
+
+    if (dateFrom && fechaCol) {
+      const from = new Date(dateFrom);
+      from.setHours(0, 0, 0, 0);
+      result = result.filter(row => {
+        const rowDate = parseFilterDate(String(row[fechaCol] || ''));
+        return rowDate && rowDate >= from;
+      });
+    }
+
+    if (dateTo && fechaCol) {
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      result = result.filter(row => {
+        const rowDate = parseFilterDate(String(row[fechaCol] || ''));
+        return rowDate && rowDate <= to;
+      });
+    }
+
+    if (selectedCategory && categoriaCol) {
+      result = result.filter(row =>
+        String(row[categoriaCol] || '').toLowerCase() === selectedCategory.toLowerCase()
+      );
+    }
 
     if (sortOrder && fechaCol) {
-      result = [...result].sort((a, b) => {
-        const dateA = parseDateValue(String(a[fechaCol] || ''));
-        const dateB = parseDateValue(String(b[fechaCol] || ''));
+      result.sort((a, b) => {
+        const dateA = parseFilterDate(String(a[fechaCol] || ''));
+        const dateB = parseFilterDate(String(b[fechaCol] || ''));
         if (!dateA && !dateB) return 0;
         if (!dateA) return 1;
         if (!dateB) return -1;
@@ -173,22 +164,10 @@ export default function EmailsPage() {
       });
     }
 
-    // Fallback sort by row order if no date column found
-    if (sortOrder && !fechaCol) {
-      result = sortOrder === 'recent' ? [...result].reverse() : result;
-    }
-
     return result;
-  }, [rows, dateFrom, dateTo, sortOrder, fechaCol, selectedCategory, categoryCol]);
+  }, [rows, dateFrom, dateTo, selectedCategory, sortOrder, fechaCol, categoriaCol]);
 
   const hasActiveFilters = dateFrom || dateTo || sortOrder || selectedCategory;
-
-  const clearFilters = () => {
-    setDateFrom('');
-    setDateTo('');
-    setSortOrder('');
-    setSelectedCategory('');
-  };
 
   const handleExport = (displayedRows?: Record<string, string | number>[]) => {
     const dataToExport = displayedRows || filteredRows;
@@ -202,7 +181,7 @@ export default function EmailsPage() {
     <div className="flex flex-col h-full overflow-hidden">
       <Header
         title="Emails"
-        subtitle="Gestion de correos electronicos"
+        subtitle="Monitoreo de leads por correo"
         onRefresh={fetchData}
         isLoading={isLoading}
       />
@@ -222,41 +201,26 @@ export default function EmailsPage() {
             ) : (
               <>
                 <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-gray-200 dark:border-gold/20 rounded-xl p-4 shadow-sm col-span-2 sm:col-span-1 animate-fade-in">
-                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Total emails</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Total registros</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {filteredRows.length}{hasActiveFilters ? ` / ${rows.length}` : ''}
                   </p>
                 </div>
-                <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-yellow-200 dark:border-yellow-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:100ms]">
-                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Pendientes</p>
-                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-500">
-                    {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('pendiente')).length}
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-purple-200 dark:border-purple-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:200ms]">
-                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Contactados</p>
-                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-500">
-                    {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('contactado')).length}
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-blue-200 dark:border-blue-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:300ms]">
-                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">En proceso</p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-500">
-                    {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('proceso')).length}
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-green-200 dark:border-green-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:400ms]">
-                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Cerrados</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-500">
-                    {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('cerrado')).length}
-                  </p>
-                </div>
+                {estadoCol && (
+                  <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-yellow-200 dark:border-yellow-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:100ms]">
+                    <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Sin procesar</p>
+                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-500">
+                      {filteredRows.filter(r => !String(r[estadoCol] || '').toLowerCase().includes('si') && !String(r[estadoCol] || '').toLowerCase().includes('true')).length}
+                    </p>
+                  </div>
+                )}
               </>
             )}
           </div>
+
           {/* Filter Section */}
           <div>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-3 mb-4">
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${hasActiveFilters
@@ -265,34 +229,13 @@ export default function EmailsPage() {
                   }`}
               >
                 <Filter className="w-3.5 h-3.5" />
-                Filtros
+                Filtros Avanzados
                 {hasActiveFilters && (
                   <span className="bg-black text-gold text-[9px] px-1.5 py-0.5 rounded-full font-black ml-1">
                     {[dateFrom || dateTo, sortOrder, selectedCategory].filter(Boolean).length}
                   </span>
                 )}
               </button>
-
-              {categories.length > 0 && (
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                    <Tag className="w-3.5 h-3.5 text-gold" />
-                  </div>
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className={`pl-10 pr-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all appearance-none cursor-pointer border ${selectedCategory
-                      ? 'bg-gold/10 text-gold border-gold/30'
-                      : 'bg-white dark:bg-white/[0.05] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gold/20'
-                      } focus:outline-none focus:ring-1 focus:ring-gold/50`}
-                  >
-                    <option value="">Todas las categorias</option>
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               <button
                 onClick={() => setSortOrder(sortOrder === 'recent' ? '' : 'recent')}
@@ -304,32 +247,68 @@ export default function EmailsPage() {
                 <ArrowDownUp className="w-3.5 h-3.5" />
                 Mas reciente
               </button>
+
+              {hasActiveFilters && (
+                <button
+                  onClick={() => {
+                    setDateFrom('');
+                    setDateTo('');
+                    setSortOrder('');
+                    setSelectedCategory('');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Limpiar
+                </button>
+              )}
             </div>
 
             {showFilters && (
-              <div className="mt-4 bg-white dark:bg-black/30 border border-gray-200 dark:border-gold/20 rounded-2xl p-6 shadow-xl animate-in fade-in slide-in-from-top-4 duration-300">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="bg-white dark:bg-black/30 border border-gray-200 dark:border-gold/20 rounded-2xl p-6 shadow-xl animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div>
                     <label className="block text-[10px] font-black text-gray-400 dark:text-gray-500 mb-2 uppercase tracking-[0.2em]">Fecha desde</label>
-                    <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gold/20 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none" />
+                    <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gold/20 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black text-gray-400 dark:text-gray-500 mb-2 uppercase tracking-[0.2em]">Fecha hasta</label>
-                    <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gold/20 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none" />
+                    <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gold/20 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50" />
                   </div>
+                  {categoriaCol && (
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 dark:text-gray-500 mb-2 uppercase tracking-[0.2em]">Categoría</label>
+                      <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gold/20 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold/50"
+                      >
+                        <option value="">Todas las categorías</option>
+                        {categories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
           </div>
 
-          <DataTable
-            headers={headers}
-            rows={filteredRows}
-            onUpdate={handleUpdate}
-            onExport={handleExport}
-            isLoading={isLoading}
-            pageType="emails"
-          />
+          {isLoading ? (
+            <TableSkeleton />
+          ) : (
+            <div className="bg-white dark:bg-black shadow-2xl rounded-3xl overflow-hidden border border-gray-100 dark:border-gold/10">
+              <DataTable
+                headers={headers}
+                rows={filteredRows}
+                onUpdate={handleUpdate}
+                onExport={handleExport}
+                isLoading={isLoading}
+                pageType="emails"
+              />
+            </div>
+          )}
         </div>
       </main>
     </div>

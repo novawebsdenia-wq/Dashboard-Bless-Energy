@@ -3,8 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import Header from '@/components/Header';
 import DataTable from '@/components/DataTable';
-import TabSelector from '@/components/TabSelector';
-import { Filter, X, ArrowDownUp } from 'lucide-react';
+import { Filter, ArrowDownUp } from 'lucide-react';
 import { exportToExcel } from '@/lib/exportUtils';
 import { TableSkeleton, StatsCardSkeleton } from '@/components/Skeleton';
 
@@ -14,7 +13,6 @@ interface Tab {
 }
 
 export default function CalculadoraPage() {
-  const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTab, setActiveTab] = useState('Leads');
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<Record<string, string | number>[]>([]);
@@ -26,12 +24,11 @@ export default function CalculadoraPage() {
   const [dateTo, setDateTo] = useState('');
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest' | ''>('');
 
-  const fetchTabs = async () => {
+  const fetchTabs = useCallback(async () => {
     try {
       const response = await fetch('/api/sheets/tabs?sheet=calculadora');
       const data = await response.json();
       if (data.success && data.data) {
-        setTabs(data.data);
         if (data.data.length > 0) {
           // Try to find 'Leads' tab, otherwise use first one
           const leadsTab = data.data.find((t: Tab) => t.title === 'Leads');
@@ -41,7 +38,7 @@ export default function CalculadoraPage() {
     } catch (error) {
       console.error('Error fetching tabs:', error);
     }
-  };
+  }, []);
 
   const fetchData = useCallback(async () => {
     if (!activeTab) return;
@@ -62,7 +59,7 @@ export default function CalculadoraPage() {
 
   useEffect(() => {
     fetchTabs();
-  }, []);
+  }, [fetchTabs]);
 
   useEffect(() => {
     fetchData();
@@ -166,11 +163,6 @@ export default function CalculadoraPage() {
 
   const hasActiveFilters = dateFrom || dateTo || sortOrder;
 
-  const clearFilters = () => {
-    setDateFrom('');
-    setDateTo('');
-    setSortOrder('');
-  };
 
   const handleExport = (displayedRows?: Record<string, string | number>[]) => {
     const dataToExport = displayedRows || filteredRows;
