@@ -43,10 +43,10 @@ export default function StatsCard({
 
   return (
     <div
-      className={`premium-card relative overflow-hidden rounded-2xl p-6 ${colorBorders[color]} bg-white dark:bg-black/30 group animate-fade-in`}
+      className={`premium-card relative overflow-hidden rounded-2xl p-6 ${colorBorders[color]} bg-white dark:bg-white/[0.03] backdrop-blur-md group animate-fade-in`}
     >
       {/* Subtle glow effect */}
-      <div className={`absolute -right-4 -top-4 w-24 h-24 blur-3xl opacity-10 dark:opacity-20 transition-opacity group-hover:opacity-30 rounded-full ${color === 'gold' ? 'bg-gold' : 'bg-' + color + '-500'}`} />
+      <div className={`absolute -right-4 -top-4 w-24 h-24 blur-3xl opacity-10 dark:opacity-30 transition-opacity group-hover:opacity-40 rounded-full ${color === 'gold' ? 'bg-gold' : 'bg-' + color + '-500'}`} />
 
       <div className="flex items-start justify-between relative z-10">
         <div className="space-y-1">
@@ -54,7 +54,7 @@ export default function StatsCard({
             {title}
           </p>
           <div className="flex items-baseline gap-1">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight drop-shadow-sm">
               {value}
             </h2>
           </div>

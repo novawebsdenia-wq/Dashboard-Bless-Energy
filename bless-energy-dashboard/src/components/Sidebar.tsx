@@ -74,9 +74,6 @@ export default function Sidebar() {
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
                   Bless <span className="text-gold">Energy</span>
                 </h1>
-                <p className="text-[10px] uppercase font-bold text-gold/60 tracking-widest mt-0.5">
-                  Factory Console
-                </p>
               </div>
             </Link>
           </div>
@@ -93,8 +90,8 @@ export default function Sidebar() {
                   href={item.href}
                   onClick={() => setIsOpen(false)}
                   className={`group flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all duration-300 relative ${isActive
-                      ? 'text-black font-bold shadow-md shadow-gold/20'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'text-black font-bold shadow-md shadow-gold/20'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                 >
                   {/* Active Background */}
@@ -111,7 +108,7 @@ export default function Sidebar() {
                   <span className="relative z-10 text-sm tracking-wide">{item.label}</span>
 
                   {isActive && (
-                    <div className="absolute right-4 w-1.5 h-1.5 bg-black rounded-full shadow-sm animate-pulse relative z-10" />
+                    <div className="absolute right-4 w-1.5 h-1.5 bg-black rounded-full shadow-sm animate-pulse z-10" />
                   )}
                 </Link>
               );
