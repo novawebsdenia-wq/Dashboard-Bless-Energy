@@ -20,49 +20,59 @@ export default function StatsCard({
   trend,
   color = 'gold',
 }: StatsCardProps) {
-  const colorClasses = {
-    gold: 'bg-white dark:bg-gradient-to-br dark:from-gold/20 dark:to-gold/5 border-gold/30 shadow-sm',
-    green: 'bg-white dark:bg-gradient-to-br dark:from-green-500/20 dark:to-green-500/5 border-green-500/30 shadow-sm',
-    blue: 'bg-white dark:bg-gradient-to-br dark:from-blue-500/20 dark:to-blue-500/5 border-blue-500/30 shadow-sm',
-    red: 'bg-white dark:bg-gradient-to-br dark:from-red-500/20 dark:to-red-500/5 border-red-500/30 shadow-sm',
+  const colorBorders = {
+    gold: 'border-gold/20 dark:border-gold/10 hover:border-gold/40',
+    green: 'border-green-500/20 dark:border-green-500/10 hover:border-green-500/40',
+    blue: 'border-blue-500/20 dark:border-blue-500/10 hover:border-blue-500/40',
+    red: 'border-red-500/20 dark:border-red-500/10 hover:border-red-500/40',
   };
 
-  const iconColorClasses = {
+  const iconColors = {
     gold: 'text-gold',
     green: 'text-green-500',
     blue: 'text-blue-500',
     red: 'text-red-500',
   };
 
-  const iconBgClasses = {
-    gold: 'bg-gold/10 dark:bg-black/30',
-    green: 'bg-green-500/10 dark:bg-black/30',
-    blue: 'bg-blue-500/10 dark:bg-black/30',
-    red: 'bg-red-500/10 dark:bg-black/30',
+  const ringColors = {
+    gold: 'ring-gold/20',
+    green: 'ring-green-500/20',
+    blue: 'ring-blue-500/20',
+    red: 'ring-red-500/20',
   };
 
   return (
     <div
-      className={`${colorClasses[color]} border rounded-xl p-6 transition-transform hover:scale-[1.02]`}
+      className={`premium-card relative overflow-hidden rounded-2xl p-6 ${colorBorders[color]} bg-white dark:bg-black/30 group animate-fade-in`}
     >
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{value}</p>
+      {/* Subtle glow effect */}
+      <div className={`absolute -right-4 -top-4 w-24 h-24 blur-3xl opacity-10 dark:opacity-20 transition-opacity group-hover:opacity-30 rounded-full ${color === 'gold' ? 'bg-gold' : 'bg-' + color + '-500'}`} />
+
+      <div className="flex items-start justify-between relative z-10">
+        <div className="space-y-1">
+          <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">
+            {title}
+          </p>
+          <div className="flex items-baseline gap-1">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+              {value}
+            </h2>
+          </div>
+
           {trend && (
-            <p
-              className={`text-sm mt-2 ${
-                trend.isPositive ? 'text-green-500' : 'text-red-500'
-              }`}
-            >
-              {trend.isPositive ? '+' : '-'}{trend.value}% vs mes anterior
-            </p>
+            <div className={`mt-2 flex items-center gap-1.5 text-xs font-medium ${trend.isPositive ? 'text-green-500' : 'text-red-500'}`}>
+              <span className={`px-1.5 py-0.5 rounded-md ${trend.isPositive ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                {trend.isPositive ? '↑' : '↓'} {trend.value}%
+              </span>
+              <span className="text-gray-400 dark:text-gray-500 font-normal">vs mes anterior</span>
+            </div>
           )}
         </div>
+
         <div
-          className={`w-12 h-12 rounded-lg ${iconBgClasses[color]} flex items-center justify-center ${iconColorClasses[color]}`}
+          className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 ring-1 ${ringColors[color]} bg-gray-50 dark:bg-black/40 ${iconColors[color]}`}
         >
-          <Icon className="w-6 h-6" />
+          <Icon className="w-6 h-6 stroke-[1.5]" />
         </div>
       </div>
     </div>

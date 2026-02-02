@@ -28,51 +28,70 @@ export default function Header({ title, subtitle, onRefresh, isLoading }: Header
 
   return (
     <>
-      <header className="bg-white/80 dark:bg-black/50 backdrop-blur-sm border-b border-gray-200 dark:border-gold/20 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="pl-12 lg:pl-0">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
-            {subtitle && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>}
+      <header className="sticky top-0 z-30 bg-white/60 dark:bg-black/40 backdrop-blur-xl border-b border-gray-200 dark:border-gold/10 px-8 py-5 transition-all duration-300">
+        <div className="flex items-center justify-between max-w-[1600px] mx-auto">
+          <div className="pl-12 lg:pl-0 space-y-1">
+            <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="text-xs font-medium text-gray-500 dark:text-gold/50 uppercase tracking-[0.2em]">
+                {subtitle}
+              </p>
+            )}
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Refresh button */}
-            {onRefresh && (
-              <button
-                onClick={onRefresh}
-                disabled={isLoading}
-                className="p-2 text-gray-500 dark:text-gray-400 hover:text-gold transition-colors disabled:opacity-50"
-                title="Actualizar datos"
-              >
-                <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-              </button>
-            )}
-
-            {/* Theme Toggle */}
-            <ThemeToggle />
-
-            {/* Notifications */}
-            <button
-              onClick={() => setIsOpen(true)}
-              className="relative p-2 text-gray-500 dark:text-gray-400 hover:text-gold transition-colors"
-            >
-              <Bell className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-gold text-black text-xs font-bold rounded-full flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
+          <div className="flex items-center gap-5">
+            <div className="flex items-center gap-2 pr-4 border-r border-gray-100 dark:border-gold/10 leading-none">
+              {/* Refresh button */}
+              {onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  disabled={isLoading}
+                  className="p-2.5 text-gray-400 hover:text-gold dark:hover:text-gold-light bg-gray-50 dark:bg-white/5 rounded-xl transition-all active:scale-95 disabled:opacity-50 group"
+                  title="Actualizar datos"
+                >
+                  <RefreshCw className={`w-4 h-4 transition-transform duration-500 ${isLoading ? 'animate-spin' : 'group-hover:rotate-180'}`} />
+                </button>
               )}
-            </button>
 
-            {/* User avatar with logo */}
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gold">
-              <Image
-                src="/logo.png"
-                alt="Bless Energy"
-                width={40}
-                height={40}
-                className="w-full h-full object-cover"
-              />
+              {/* Theme Toggle */}
+              <div className="p-0.5 bg-gray-50 dark:bg-white/5 rounded-xl">
+                <ThemeToggle />
+              </div>
+
+              {/* Notifications */}
+              <button
+                onClick={() => setIsOpen(true)}
+                className="relative p-2.5 text-gray-400 hover:text-gold dark:hover:text-gold-light bg-gray-50 dark:bg-white/5 rounded-xl transition-all active:scale-95 group"
+              >
+                <Bell className="w-4 h-4 transition-transform group-hover:shake" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-gradient-to-tr from-gold to-gold-light text-black text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-black shadow-lg shadow-gold/20">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* User Profile Preview */}
+            <div className="flex items-center gap-3 pl-1 group cursor-pointer">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-bold text-gray-900 dark:text-white leading-none">Admin</p>
+                <p className="text-[10px] text-gold font-bold mt-1 uppercase tracking-tighter">Bless Energy</p>
+              </div>
+              <div className="relative">
+                <div className="absolute inset-0 bg-gold blur-md opacity-20 group-hover:opacity-40 transition-opacity rounded-full"></div>
+                <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-gold/40 group-hover:border-gold transition-colors relative z-10 bg-black shadow-inner">
+                  <Image
+                    src="/logo.png"
+                    alt="Bless Energy"
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-cover p-1.5"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>

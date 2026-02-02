@@ -17,10 +17,12 @@ export const filterEmptyRows = (
     data: Record<string, string | number>[],
     headers: string[]
 ): Record<string, string | number>[] => {
+    const internalFieldRegex = /^(id|rowindex|index|no\.|#|fid)$/i;
     return data.filter(row => {
         return headers.some(h => {
+            if (internalFieldRegex.test(h)) return false;
             const val = row[h];
-            return val !== undefined && val !== null && String(val).trim().length > 0;
+            return val !== undefined && val !== null && String(val).replace(/[\u200B-\u200D\uFEFF\s]/g, '').length > 0;
         });
     });
 };
@@ -44,9 +46,18 @@ export const exportToExcel = (
     });
 
     // 2. Map data and filter out completely empty rows
+    const internalFieldRegex = /^(id|rowindex|index|no\.|#|fid)$/i;
     const rawRows = data
         .map(row => validHeaders.map(h => String(row[h] || '').trim()))
-        .filter(values => values.some(v => v.length > 0)); // FIX: Check ALL columns, not just first 3
+        .filter((rowValues) => {
+            // Check if this row has any real data in non-internal columns
+            return validHeaders.some((h, i) => {
+                if (internalFieldRegex.test(h)) return false;
+                const val = rowValues[i];
+                // Check if the cell has actual content, ignoring common invisible characters from Google Sheets
+                return val && val.replace(/[\u200B-\u200D\uFEFF\s]/g, '').length > 0;
+            });
+        });
 
     if (rawRows.length === 0) {
         console.warn('No hay datos para exportar');

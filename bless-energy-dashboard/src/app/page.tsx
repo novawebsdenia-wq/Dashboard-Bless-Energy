@@ -124,7 +124,7 @@ export default function Dashboard() {
   );
 
   return (
-    <>
+    <div className="flex flex-col h-full overflow-hidden">
       <Header
         title="Dashboard"
         subtitle="Vista general de Bless Energy"
@@ -132,142 +132,167 @@ export default function Dashboard() {
         isLoading={isLoading}
       />
 
-      <div className="flex-1 p-6 overflow-y-auto">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatsCard
-            title="Total Emails"
-            value={isLoading ? '...' : stats?.totalEmails || 0}
-            icon={Mail}
-            color="gold"
-          />
-          <StatsCard
-            title="Leads Calculadora"
-            value={isLoading ? '...' : stats?.totalLeads || 0}
-            icon={Calculator}
-            color="blue"
-          />
-          <StatsCard
-            title="Formulario Web"
-            value={isLoading ? '...' : stats?.totalFormulario || 0}
-            icon={FileText}
-            color="green"
-          />
-          <StatsCard
-            title="Total Clientes"
-            value={isLoading ? '...' : stats?.totalClientes || 0}
-            icon={Users}
-            color="gold"
-          />
-        </div>
-
-        {/* Secondary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <StatsCard
-            title="Leads Pendientes"
-            value={isLoading ? '...' : stats?.leadsPendientes || 0}
-            icon={Clock}
-            color="red"
-          />
-          <StatsCard
-            title="Clientes Nuevos (7 dias)"
-            value={isLoading ? '...' : stats?.clientesNuevos || 0}
-            icon={TrendingUp}
-            color="green"
-          />
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Chart
-            data={stats?.sourceData || defaultSourceData}
-            type="bar"
-            dataKey="value"
-            xAxisKey="name"
-            title="Origen de leads"
-          />
-          <Chart
-            data={stats?.sourceData || defaultSourceData}
-            type="pie"
-            dataKey="value"
-            title="Distribucion de leads"
-          />
-        </div>
-
-        {/* Recent Activity */}
-        <div className="mt-8 bg-white dark:bg-black/30 border border-gray-200 dark:border-gold/20 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Actividad Reciente</h3>
-            {activities.length > 0 && (
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                {activities.length} registros
-              </span>
-            )}
-          </div>
-          <div className="space-y-3">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gold"></div>
-              </div>
-            ) : paginatedActivities.length > 0 ? (
-              paginatedActivities.map((activity, index) => {
-                const Icon = getActivityIcon(activity.source, activity.type);
-                const label = getActivityLabel(activity);
-                return (
-                  <div
-                    key={index}
-                    className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-black/30 rounded-lg border border-gray-100 dark:border-gold/10"
-                  >
-                    <div className="w-10 h-10 bg-gold/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-5 h-5 text-gold" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-gray-900 dark:text-white text-sm truncate">
-                        {label}: <span className="font-medium">{activity.name}</span>
-                      </p>
-                      <p className="text-gray-500 text-xs">
-                        {activity.source} - {formatTimeAgo(activity.date)}
-                      </p>
-                    </div>
-                    <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${getStatusColor(activity.status)}`}>
-                      {activity.status || 'Pendiente'}
-                    </span>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                No hay actividad reciente
-              </div>
-            )}
+      <main className="flex-1 p-8 overflow-y-auto custom-scrollbar">
+        <div className="max-w-[1600px] mx-auto space-y-8 pb-12">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatsCard
+              title="Total Emails"
+              value={isLoading ? '...' : stats?.totalEmails || 0}
+              icon={Mail}
+              color="gold"
+            />
+            <StatsCard
+              title="Leads Calculadora"
+              value={isLoading ? '...' : stats?.totalLeads || 0}
+              icon={Calculator}
+              color="blue"
+            />
+            <StatsCard
+              title="Formulario Web"
+              value={isLoading ? '...' : stats?.totalFormulario || 0}
+              icon={FileText}
+              color="green"
+            />
+            <StatsCard
+              title="Total Clientes"
+              value={isLoading ? '...' : stats?.totalClientes || 0}
+              icon={Users}
+              color="gold"
+            />
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gold/10">
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                Pagina {activityPage} de {totalPages}
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setActivityPage(p => Math.max(1, p - 1))}
-                  disabled={activityPage === 1}
-                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-gold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => setActivityPage(p => Math.min(totalPages, p + 1))}
-                  disabled={activityPage === totalPages}
-                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-gold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
+          {/* Secondary Stats */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1 space-y-6">
+              <StatsCard
+                title="Leads Pendientes"
+                value={isLoading ? '...' : stats?.leadsPendientes || 0}
+                icon={Clock}
+                color="red"
+              />
+              <StatsCard
+                title="Clientes Nuevos (7 dias)"
+                value={isLoading ? '...' : stats?.clientesNuevos || 0}
+                icon={TrendingUp}
+                color="green"
+              />
             </div>
-          )}
+
+            {/* Main Chart in between */}
+            <div className="lg:col-span-2">
+              <Chart
+                data={stats?.sourceData || defaultSourceData}
+                type="bar"
+                dataKey="value"
+                xAxisKey="name"
+                title="Origen de leads"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Pie Chart Distribution */}
+            <div className="lg:col-span-1">
+              <Chart
+                data={stats?.sourceData || defaultSourceData}
+                type="pie"
+                dataKey="value"
+                title="Distribución de leads"
+              />
+            </div>
+
+            {/* Recent Activity */}
+            <div className="lg:col-span-2 premium-card bg-white dark:bg-black/30 border border-gray-100 dark:border-gold/10 rounded-2xl overflow-hidden animate-fade-in flex flex-col">
+              <div className="p-8 border-b border-gray-50 dark:border-gold/5 flex items-center justify-between bg-white/50 dark:bg-transparent backdrop-blur-sm">
+                <div>
+                  <h3 className="text-sm font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Actividad Reciente</h3>
+                  <p className="text-[10px] text-gold font-bold uppercase mt-1">Live Feed</p>
+                </div>
+                {activities.length > 0 && (
+                  <span className="px-3 py-1 bg-gold/10 text-gold text-[10px] font-black rounded-full uppercase tracking-tighter shadow-sm border border-gold/20">
+                    {activities.length} Registros
+                  </span>
+                )}
+              </div>
+
+              <div className="p-6 flex-1">
+                <div className="space-y-3">
+                  {isLoading ? (
+                    <div className="flex flex-col items-center justify-center py-16 gap-3">
+                      <div className="w-10 h-10 border-2 border-gold/20 border-t-gold rounded-full animate-spin"></div>
+                      <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Sincronizando...</p>
+                    </div>
+                  ) : paginatedActivities.length > 0 ? (
+                    paginatedActivities.map((activity, index) => {
+                      const Icon = getActivityIcon(activity.source, activity.type);
+                      const label = getActivityLabel(activity);
+                      return (
+                        <div
+                          key={index}
+                          className="group flex items-center gap-5 p-4 bg-gray-50/50 dark:bg-white/[0.02] hover:bg-gold/[0.03] dark:hover:bg-gold/[0.05] rounded-2xl border border-transparent hover:border-gold/20 transition-all duration-300 relative overflow-hidden"
+                        >
+                          <div className="relative z-10 w-12 h-12 bg-white dark:bg-black border border-gray-100 dark:border-gold/20 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-transform">
+                            <Icon className="w-5 h-5 text-gold stroke-[1.5]" />
+                          </div>
+                          <div className="flex-1 min-w-0 relative z-10">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-gold opacity-80">{label}</span>
+                              <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gold/30"></span>
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{formatTimeAgo(activity.date)}</span>
+                            </div>
+                            <p className="text-gray-900 dark:text-white text-sm font-bold truncate leading-none mb-1.5">
+                              {activity.name}
+                            </p>
+                            <p className="text-gray-400 dark:text-gray-500 text-[10px] font-medium uppercase tracking-widest truncate">
+                              Canal: {activity.source}
+                            </p>
+                          </div>
+                          <div className="relative z-10 text-right">
+                            <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm ${getStatusColor(activity.status)}`}>
+                              {activity.status || 'Pendiente'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-16 opacity-30 flex flex-col items-center gap-2">
+                      <Clock className="w-10 h-10 text-gray-400" />
+                      <p className="text-[10px] uppercase font-black tracking-widest">No hay actividad reciente</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="p-6 bg-gray-50/20 dark:bg-white/[0.01] border-t border-gray-100 dark:border-gold/5 flex items-center justify-between">
+                  <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                    Página <span className="text-gold">{activityPage}</span> de {totalPages}
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setActivityPage((p) => Math.max(1, p - 1))}
+                      disabled={activityPage === 1}
+                      className="p-2.5 text-gray-400 hover:text-gold bg-white dark:bg-black/40 border border-gray-200 dark:border-gold/10 rounded-xl shadow-sm transition-all active:scale-90 disabled:opacity-30 group"
+                    >
+                      <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+                    </button>
+                    <button
+                      onClick={() => setActivityPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={activityPage === totalPages}
+                      className="p-2.5 text-gray-400 hover:text-gold bg-white dark:bg-black/40 border border-gray-200 dark:border-gold/10 rounded-xl shadow-sm transition-all active:scale-90 disabled:opacity-30 group"
+                    >
+                      <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </>
+      </main>
+    </div>
   );
 }

@@ -25,13 +25,13 @@ interface ChartProps {
   color?: string;
 }
 
-// Colores específicos: Calculadora = Amarillo/Dorado, Formulario = Verde
+// Colores corporativos Bless Energy
 const SOURCE_COLORS: Record<string, string> = {
-  'Calculadora': '#F59E0B', // Amarillo
-  'Formulario': '#10B981',  // Verde
+  'Calculadora': '#D4AF37', // Oro Principal
+  'Formulario': '#10B981',  // Verde Leads
 };
 
-const DEFAULT_COLORS = ['#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'];
+const DEFAULT_COLORS = ['#D4AF37', '#B8860B', '#10B981', '#3B82F6', '#6366F1'];
 
 export default function Chart({
   data,
@@ -41,7 +41,6 @@ export default function Chart({
   title,
   color = '#D4AF37',
 }: ChartProps) {
-  // Get color for each data item based on name
   const getColor = (item: any, index: number): string => {
     if (item.name && SOURCE_COLORS[item.name]) {
       return SOURCE_COLORS[item.name];
@@ -53,29 +52,33 @@ export default function Chart({
     if (active && payload && payload.length) {
       const item = payload[0];
       return (
-        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gold/30 rounded-lg p-3 shadow-lg">
-          <p className="text-gray-700 dark:text-gray-300 text-sm font-medium">{item.payload?.name || label}</p>
-          <p className="text-lg font-bold" style={{ color: item.payload?.fill || '#D4AF37' }}>
-            {item.value} leads
+        <div className="glass shadow-2xl rounded-2xl p-4 border border-gold/20 animate-in fade-in zoom-in-95 duration-200">
+          <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">
+            {item.payload?.name || label}
           </p>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.payload?.fill || item.color || '#D4AF37' }} />
+            <p className="text-xl font-black text-white">
+              {item.value} <span className="text-sm font-normal text-gray-500">leads</span>
+            </p>
+          </div>
         </div>
       );
     }
     return null;
   };
 
-  // Custom legend for pie chart
   const CustomLegend = ({ payload }: any) => {
     return (
-      <div className="flex justify-center gap-6 mt-4">
+      <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 mt-6">
         {payload?.map((entry: any, index: number) => (
-          <div key={index} className="flex items-center gap-2">
-            <div 
-              className="w-4 h-4 rounded-full" 
+          <div key={index} className="flex items-center gap-2.5 group cursor-default">
+            <div
+              className="w-3 h-3 rounded-full shadow-sm transition-transform group-hover:scale-125"
               style={{ backgroundColor: entry.color }}
             />
-            <span className="text-sm text-gray-700 dark:text-gray-300">
-              {entry.value}: <span className="font-semibold">{data[index]?.value || 0}</span>
+            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 group-hover:text-gold transition-colors">
+              {entry.value}: <span className="text-gray-900 dark:text-white ml-1">{data[index]?.value || 0}</span>
             </span>
           </div>
         ))}
@@ -84,39 +87,65 @@ export default function Chart({
   };
 
   return (
-    <div className="bg-white dark:bg-black/30 border border-gray-200 dark:border-gold/20 rounded-xl p-6 shadow-sm">
+    <div className="premium-card bg-white dark:bg-black/30 border border-gray-100 dark:border-gold/10 rounded-2xl p-8 animate-fade-in relative overflow-hidden">
+      {/* Background glow Decor */}
+      <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-gold/5 blur-3xl rounded-full pointer-events-none" />
+
       {title && (
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{title}</h3>
+        <h3 className="text-sm font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-8 relative z-10">
+          {title}
+        </h3>
       )}
-      <div className={type === 'pie' ? 'h-72' : 'h-64'}>
+      <div className={`${type === 'pie' ? 'h-80' : 'h-64'} relative z-10`}>
         <ResponsiveContainer width="100%" height="100%">
           {type === 'area' ? (
             <AreaChart data={data}>
               <defs>
                 <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                  <stop offset="5%" stopColor={color} stopOpacity={0.2} />
                   <stop offset="95%" stopColor={color} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-              <XAxis dataKey={xAxisKey} className="text-gray-600 dark:text-gray-400" stroke="#888" fontSize={12} />
-              <YAxis className="text-gray-600 dark:text-gray-400" stroke="#888" fontSize={12} />
-              <Tooltip content={<CustomTooltip />} />
+              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="rgba(212, 175, 55, 0.05)" />
+              <XAxis
+                dataKey={xAxisKey}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 600 }}
+                dy={10}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 600 }}
+              />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(212, 175, 55, 0.2)', strokeWidth: 1 }} />
               <Area
                 type="monotone"
                 dataKey={dataKey}
                 stroke={color}
-                strokeWidth={2}
+                strokeWidth={3}
                 fill="url(#colorGradient)"
+                animationDuration={1500}
               />
             </AreaChart>
           ) : type === 'bar' ? (
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-              <XAxis dataKey={xAxisKey} stroke="#888" fontSize={12} />
-              <YAxis stroke="#888" fontSize={12} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey={dataKey} radius={[4, 4, 0, 0]}>
+            <BarChart data={data} barSize={32}>
+              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="rgba(212, 175, 55, 0.05)" />
+              <XAxis
+                dataKey={xAxisKey}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 600 }}
+                dy={10}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#6B7280', fontSize: 10, fontWeight: 600 }}
+              />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(212, 175, 55, 0.03)' }} />
+              <Bar dataKey={dataKey} radius={[6, 6, 0, 0]} animationDuration={1500}>
                 {data.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={getColor(entry, index)} />
                 ))}
@@ -128,24 +157,24 @@ export default function Chart({
                 data={data}
                 cx="50%"
                 cy="45%"
-                innerRadius={50}
-                outerRadius={80}
-                paddingAngle={5}
+                innerRadius={65}
+                outerRadius={95}
+                paddingAngle={8}
                 dataKey={dataKey}
                 nameKey="name"
-                label={({ name, value, percent }) => `${value} (${((percent ?? 0) * 100).toFixed(0)}%)`}
-                labelLine={true}
+                animationDuration={1500}
+                stroke="none"
               >
                 {data.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={getColor(entry, index)}
-                    stroke="transparent"
+                    className="hover:opacity-80 transition-opacity outline-none"
                   />
                 ))}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
-              <Legend content={<CustomLegend />} />
+              <Legend content={<CustomLegend />} verticalAlign="bottom" />
             </PieChart>
           )}
         </ResponsiveContainer>

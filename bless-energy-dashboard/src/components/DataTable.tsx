@@ -282,13 +282,13 @@ export default function DataTable({
       </div>
 
       {/* Mobile Card View */}
-      <div className="md:hidden">
+      <div className="md:hidden divide-y divide-gray-100 dark:divide-gold/10">
         {paginatedRows.length === 0 ? (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+          <div className="p-12 text-center text-gray-500 opacity-50 font-medium">
             No se encontraron registros
           </div>
         ) : (
-          <div className="divide-y divide-gray-200 dark:divide-gold/10">
+          <div className="divide-y divide-gray-50 dark:divide-gold/5">
             {paginatedRows.map((row, index) => {
               const actualRowIndex = Number(row.rowIndex) || index + 2;
               const isEditing = editingRow === actualRowIndex;
@@ -312,52 +312,49 @@ export default function DataTable({
               return (
                 <div
                   key={row.id || index}
-                  className="transition-colors"
+                  className="animate-fade-in"
                 >
-                  {/* Compact Preview - always visible */}
+                  {/* Compact Preview */}
                   <div
-                    className="p-4 flex items-center gap-3 cursor-pointer active:bg-gray-100 dark:active:bg-gold/10"
+                    className="p-5 flex items-center gap-4 cursor-pointer active:bg-gold/5"
                     onClick={() => {
                       if (!isEditing) setExpandedCard(isExpanded ? null : actualRowIndex);
                     }}
                   >
-                    {/* Main info */}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">
+                        <p className="font-bold text-gray-900 dark:text-white text-sm truncate uppercase tracking-tight">
                           {nameValue}
                         </p>
                         {statusValue && !isExpanded && (
-                          <span className={`flex-shrink-0 inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${getStatusClass(statusValue)}`}>
+                          <span className={`flex-shrink-0 inline-flex px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-tighter shadow-sm ${getStatusClass(statusValue)}`}>
                             {statusValue}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-2">
                         {dateValue && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">{dateValue}</span>
-                        )}
-                        {dateValue && emailValue && (
-                          <span className="text-xs text-gray-300 dark:text-gray-600">·</span>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{dateValue}</p>
                         )}
                         {emailValue && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{emailValue}</span>
+                          <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium truncate italic">{emailValue}</p>
                         )}
                       </div>
                     </div>
 
-                    {/* Expand arrow */}
-                    <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    <div className={`p-2 rounded-xl bg-gray-50 dark:bg-white/5 transition-transform duration-300 ${isExpanded ? 'rotate-180 bg-gold/10' : ''}`}>
+                      <ChevronDown className={`w-4 h-4 text-gray-400 ${isExpanded ? 'text-gold' : ''}`} />
+                    </div>
                   </div>
 
                   {/* Expanded Details */}
                   {isExpanded && (
-                    <div className="px-4 pb-4 pt-0">
-                      <div className="bg-gray-50 dark:bg-black/40 rounded-xl p-4 space-y-3 border border-gray-200 dark:border-gold/10">
+                    <div className="px-5 pb-5 pt-0">
+                      <div className="glass rounded-2xl p-5 space-y-4 shadow-xl shadow-black/5 animate-in slide-in-from-top-2 duration-300">
                         {/* Status selector (always show if available) */}
                         {statusHeader && (
-                          <div className="flex items-center justify-between">
-                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                          <div className="flex items-center justify-between gap-4">
+                            <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
                               {statusHeader}
                             </label>
                             {isEditing ? (
@@ -369,7 +366,7 @@ export default function DataTable({
                                     [statusHeader]: e.target.value,
                                   }))
                                 }
-                                className="px-3 py-1.5 bg-white dark:bg-black/50 border border-gold/30 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold"
+                                className="px-3 py-2 bg-white dark:bg-black/60 border border-gold/30 rounded-xl text-xs font-bold uppercase tracking-tight text-gray-900 dark:text-white focus:outline-none"
                               >
                                 <option value="">Seleccionar...</option>
                                 {getOptionsForField(statusHeader).map((opt) => (
@@ -381,7 +378,7 @@ export default function DataTable({
                                 value={statusValue}
                                 onChange={(e) => handleQuickStatusChange(row, statusHeader, e.target.value)}
                                 disabled={isSaving}
-                                className={`px-3 py-1.5 rounded-lg text-sm font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-gold/50 ${getStatusClass(statusValue)}`}
+                                className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tight border-0 cursor-pointer shadow-sm focus:outline-none focus:ring-4 focus:ring-gold/10 ${getStatusClass(statusValue)}`}
                               >
                                 <option value="">Seleccionar...</option>
                                 {getOptionsForField(statusHeader).map((opt) => (
@@ -389,7 +386,7 @@ export default function DataTable({
                                 ))}
                               </select>
                             ) : (
-                              <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(statusValue)}`}>
+                              <span className={`inline-flex px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight ${getStatusClass(statusValue)}`}>
                                 {statusValue || '-'}
                               </span>
                             )}
@@ -397,100 +394,103 @@ export default function DataTable({
                         )}
 
                         {/* Other fields */}
-                        {expandedHeaders.map((header) => {
-                          const fieldType = getFieldType(header);
-                          const options = getOptionsForField(header);
-                          const currentValue = getCurrentValue(row, header);
-                          const showAsBadge = shouldShowAsBadge(header);
+                        <div className="grid grid-cols-1 gap-4 pt-2">
+                          {expandedHeaders.map((header) => {
+                            const fieldType = getFieldType(header);
+                            const options = getOptionsForField(header);
+                            const currentValue = getCurrentValue(row, header);
+                            const showAsBadge = shouldShowAsBadge(header);
 
-                          return (
-                            <div key={header} className="flex items-start justify-between gap-3">
-                              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide flex-shrink-0 pt-1">
-                                {header}
-                              </label>
-                              <div className="text-sm text-gray-900 dark:text-white text-right">
-                                {isEditing ? (
-                                  fieldType !== 'text' && showStatusSelectors ? (
+                            return (
+                              <div key={header} className="space-y-1.5">
+                                <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest block">
+                                  {header}
+                                </label>
+                                <div className="text-sm font-medium">
+                                  {isEditing ? (
+                                    fieldType !== 'text' && showStatusSelectors ? (
+                                      <select
+                                        value={editedValues[header] || ''}
+                                        onChange={(e) =>
+                                          setEditedValues((prev) => ({
+                                            ...prev,
+                                            [header]: e.target.value,
+                                          }))
+                                        }
+                                        className="w-full px-3 py-2 bg-white dark:bg-black/60 border border-gold/30 rounded-xl text-xs font-bold uppercase tracking-tight text-gray-900 dark:text-white focus:outline-none"
+                                      >
+                                        <option value="">Seleccionar...</option>
+                                        {options.map((opt) => (
+                                          <option key={opt} value={opt}>{opt}</option>
+                                        ))}
+                                      </select>
+                                    ) : (
+                                      <input
+                                        type="text"
+                                        value={editedValues[header] || ''}
+                                        onChange={(e) =>
+                                          setEditedValues((prev) => ({
+                                            ...prev,
+                                            [header]: e.target.value,
+                                          }))
+                                        }
+                                        className="w-full px-3 py-2 bg-white dark:bg-black/60 border border-gold/30 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none"
+                                      />
+                                    )
+                                  ) : showAsBadge || (fieldType === 'priority' && pageType === 'emails') ? (
+                                    <span className={`inline-flex px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight shadow-sm ${getPriorityClass(currentValue)}`}>
+                                      {currentValue || '-'}
+                                    </span>
+                                  ) : fieldType !== 'text' && showStatusSelectors && onUpdate ? (
                                     <select
-                                      value={editedValues[header] || ''}
-                                      onChange={(e) =>
-                                        setEditedValues((prev) => ({
-                                          ...prev,
-                                          [header]: e.target.value,
-                                        }))
-                                      }
-                                      className="px-3 py-1.5 bg-white dark:bg-black/50 border border-gold/30 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-gold"
+                                      value={currentValue}
+                                      onChange={(e) => handleQuickStatusChange(row, header, e.target.value)}
+                                      disabled={isSaving}
+                                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tight border-0 shadow-sm focus:outline-none ${getStatusClass(currentValue)}`}
                                     >
                                       <option value="">Seleccionar...</option>
                                       {options.map((opt) => (
                                         <option key={opt} value={opt}>{opt}</option>
                                       ))}
                                     </select>
+                                  ) : (isLinkField(header) || isUrl(currentValue)) && currentValue ? (
+                                    <a
+                                      href={currentValue}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-gold/10 text-gold rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gold/20 transition-all active:scale-95"
+                                    >
+                                      <ExternalLink className="w-3 h-3" />
+                                      Ver factura
+                                    </a>
                                   ) : (
-                                    <input
-                                      type="text"
-                                      value={editedValues[header] || ''}
-                                      onChange={(e) =>
-                                        setEditedValues((prev) => ({
-                                          ...prev,
-                                          [header]: e.target.value,
-                                        }))
-                                      }
-                                      className="w-full px-3 py-1.5 bg-white dark:bg-black/50 border border-gold/30 rounded-lg text-sm text-gray-900 dark:text-white text-right focus:outline-none focus:border-gold"
-                                    />
-                                  )
-                                ) : showAsBadge || (fieldType === 'priority' && pageType === 'emails') ? (
-                                  <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${getPriorityClass(currentValue)}`}>
-                                    {currentValue || '-'}
-                                  </span>
-                                ) : fieldType !== 'text' && showStatusSelectors && onUpdate ? (
-                                  <select
-                                    value={currentValue}
-                                    onChange={(e) => handleQuickStatusChange(row, header, e.target.value)}
-                                    disabled={isSaving}
-                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-gold/50 ${getStatusClass(currentValue)}`}
-                                  >
-                                    <option value="">Seleccionar...</option>
-                                    {options.map((opt) => (
-                                      <option key={opt} value={opt}>{opt}</option>
-                                    ))}
-                                  </select>
-                                ) : (isLinkField(header) || isUrl(currentValue)) && currentValue ? (
-                                  <a
-                                    href={currentValue}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold/10 text-gold rounded-lg text-xs font-medium hover:bg-gold/20 transition-colors"
-                                  >
-                                    <ExternalLink className="w-3.5 h-3.5" />
-                                    Ver factura
-                                  </a>
-                                ) : (
-                                  <span className="break-words">{currentValue || '-'}</span>
-                                )}
+                                    <p className="text-gray-900 dark:text-gray-100 break-words leading-relaxed text-sm">
+                                      {currentValue || '-'}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
 
                         {/* Edit actions */}
                         {onUpdate && (
-                          <div className="pt-2 border-t border-gray-200 dark:border-gold/10 flex justify-end gap-2">
+                          <div className="pt-4 border-t border-gray-100 dark:border-gold/10 flex justify-end gap-3">
                             {isEditing ? (
                               <>
                                 <button
                                   onClick={handleCancel}
-                                  className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors"
+                                  className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all active:scale-95"
                                 >
                                   Cancelar
                                 </button>
                                 <button
                                   onClick={() => handleSave(actualRowIndex)}
                                   disabled={isSaving}
-                                  className="px-3 py-1.5 text-sm bg-gold text-black font-medium rounded-lg hover:bg-gold/80 transition-colors disabled:opacity-50"
+                                  className="px-5 py-2 text-[10px] font-black uppercase tracking-[0.2em] bg-gradient-to-r from-gold to-gold-dark text-black rounded-xl shadow-lg shadow-gold/20 transition-all active:scale-95 disabled:opacity-50"
                                 >
-                                  Guardar
+                                  {isSaving ? 'Guardando...' : 'Guardar'}
                                 </button>
                               </>
                             ) : (
@@ -499,10 +499,10 @@ export default function DataTable({
                                   e.stopPropagation();
                                   handleEdit(actualRowIndex, row);
                                 }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gold hover:bg-gold/10 rounded-lg transition-colors"
+                                className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gold bg-gold/10 rounded-xl hover:bg-gold/20 transition-all active:scale-95"
                               >
-                                <Edit2 className="w-3.5 h-3.5" />
-                                Editar
+                                <Edit2 className="w-3 h-3" />
+                                Editar Registro
                               </button>
                             )}
                           </div>
@@ -518,41 +518,50 @@ export default function DataTable({
       </div>
 
       {/* Desktop Table View */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full">
+      <div className="hidden md:block overflow-x-auto custom-scrollbar">
+        <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gray-50 dark:bg-black/50">
+            <tr className="bg-gray-50/50 dark:bg-white/[0.02] border-b border-gray-100 dark:border-gold/10">
               {visibleHeaders.map((header) => (
                 <th
                   key={header}
                   onClick={() => handleSort(header)}
-                  className="px-4 py-3 text-left text-sm font-semibold text-gold cursor-pointer hover:bg-gold/10 transition-colors"
+                  className="px-6 py-4 text-left group cursor-pointer transition-colors hover:bg-gold/5"
                 >
                   <div className="flex items-center gap-2">
-                    {header}
-                    {sortConfig?.key === header && (
-                      <span className="text-xs">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500 group-hover:text-gold transition-colors">
+                      {header}
+                    </span>
+                    {sortConfig?.key === header ? (
+                      <span className="text-gold animate-in fade-in slide-in-from-bottom-1">
                         {sortConfig.direction === 'asc' ? '↑' : '↓'}
                       </span>
+                    ) : (
+                      <ChevronDown className="w-3 h-3 text-gray-300 dark:text-gray-700 opacity-0 group-hover:opacity-100 transition-all" />
                     )}
                   </div>
                 </th>
               ))}
               {onUpdate && (
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gold">
-                  Acciones
+                <th className="px-6 py-4 text-left">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">
+                    Acciones
+                  </span>
                 </th>
               )}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-50 dark:divide-gold/5">
             {paginatedRows.length === 0 ? (
               <tr>
                 <td
                   colSpan={visibleHeaders.length + (onUpdate ? 1 : 0)}
-                  className="px-4 py-8 text-center text-gray-500"
+                  className="px-6 py-16 text-center"
                 >
-                  No se encontraron registros
+                  <div className="flex flex-col items-center gap-2 opacity-40">
+                    <Search className="w-8 h-8 text-gray-400" />
+                    <p className="text-sm font-medium text-gray-500">No se encontraron registros</p>
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -563,7 +572,7 @@ export default function DataTable({
                 return (
                   <tr
                     key={row.id || index}
-                    className="border-t border-gray-100 dark:border-gold/10 hover:bg-gray-50 dark:hover:bg-gold/5 transition-colors"
+                    className="group hover:bg-gold/[0.02] dark:hover:bg-gold/[0.03] transition-colors"
                   >
                     {visibleHeaders.map((header) => {
                       const fieldType = getFieldType(header);
@@ -572,7 +581,7 @@ export default function DataTable({
                       const showAsBadge = shouldShowAsBadge(header);
 
                       return (
-                        <td key={header} className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                        <td key={header} className="px-6 py-4 transition-transform duration-300 group-hover:translate-x-0.5">
                           {isEditing ? (
                             fieldType !== 'text' && showStatusSelectors ? (
                               <select
@@ -583,7 +592,7 @@ export default function DataTable({
                                     [header]: e.target.value,
                                   }))
                                 }
-                                className="w-full px-2 py-1 bg-gray-50 dark:bg-black/50 border border-gold/30 rounded text-gray-900 dark:text-white focus:outline-none focus:border-gold"
+                                className="w-full px-3 py-1.5 bg-white dark:bg-black/60 border border-gold/30 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold/20"
                               >
                                 <option value="">Seleccionar...</option>
                                 {options.map((opt) => (
@@ -600,12 +609,11 @@ export default function DataTable({
                                     [header]: e.target.value,
                                   }))
                                 }
-                                className="w-full px-2 py-1 bg-gray-50 dark:bg-black/50 border border-gold/30 rounded text-gray-900 dark:text-white focus:outline-none focus:border-gold"
+                                className="w-full px-3 py-1.5 bg-white dark:bg-black/60 border border-gold/30 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold/20"
                               />
                             )
                           ) : showAsBadge || (fieldType === 'priority' && pageType === 'emails') ? (
-                            // Show as badge (read-only) for priorities in emails
-                            <span className={`inline-flex px-2 py-1 rounded text-sm font-medium ${getPriorityClass(currentValue)}`}>
+                            <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-tight shadow-sm ${getPriorityClass(currentValue)}`}>
                               {currentValue || '-'}
                             </span>
                           ) : fieldType !== 'text' && showStatusSelectors && onUpdate ? (
@@ -613,7 +621,7 @@ export default function DataTable({
                               value={currentValue}
                               onChange={(e) => handleQuickStatusChange(row, header, e.target.value)}
                               disabled={isSaving}
-                              className={`px-2 py-1 rounded text-sm font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-gold/50 ${getStatusClass(currentValue)}`}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-tight border-0 cursor-pointer shadow-sm transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-gold/10 ${getStatusClass(currentValue)}`}
                             >
                               <option value="">Seleccionar...</option>
                               {options.map((opt) => (
@@ -625,13 +633,13 @@ export default function DataTable({
                               href={currentValue}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-gold hover:text-gold/80 transition-colors"
+                              className="inline-flex items-center gap-1.5 text-gold font-bold hover:text-gold-light transition-all hover:translate-x-1"
                             >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                              Ver factura
+                              <ExternalLink className="w-4 h-4" />
+                              <span className="text-xs uppercase tracking-widest">Factura</span>
                             </a>
                           ) : (
-                            <span className="truncate max-w-xs block">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate max-w-xs block leading-relaxed">
                               {currentValue || '-'}
                             </span>
                           )}
@@ -639,31 +647,33 @@ export default function DataTable({
                       );
                     })}
                     {onUpdate && (
-                      <td className="px-4 py-3">
-                        {isEditing ? (
-                          <div className="flex items-center gap-2">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {isEditing ? (
+                            <>
+                              <button
+                                onClick={() => handleSave(actualRowIndex)}
+                                disabled={isSaving}
+                                className="p-2 text-green-500 hover:bg-green-500/10 rounded-xl transition-all active:scale-90 disabled:opacity-50"
+                              >
+                                <Save className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={handleCancel}
+                                className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all active:scale-90"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </>
+                          ) : (
                             <button
-                              onClick={() => handleSave(actualRowIndex)}
-                              disabled={isSaving}
-                              className="p-1 text-green-500 hover:bg-green-500/20 rounded transition-colors disabled:opacity-50"
+                              onClick={() => handleEdit(actualRowIndex, row)}
+                              className="p-2.5 text-gold hover:bg-gold/10 rounded-xl transition-all active:scale-90"
                             >
-                              <Save className="w-4 h-4" />
+                              <Edit2 className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={handleCancel}
-                              className="p-1 text-red-500 hover:bg-red-500/20 rounded transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => handleEdit(actualRowIndex, row)}
-                            className="p-1 text-gold hover:bg-gold/20 rounded transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        )}
+                          )}
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -676,24 +686,24 @@ export default function DataTable({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="p-4 border-t border-gray-200 dark:border-gold/20 flex items-center justify-between">
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            Pagina {currentPage} de {totalPages}
-          </span>
-          <div className="flex items-center gap-2">
+        <div className="p-6 bg-gray-50/30 dark:bg-white/[0.01] border-t border-gray-100 dark:border-gold/5 flex items-center justify-between">
+          <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+            Página <span className="text-gold">{currentPage}</span> de {totalPages}
+          </p>
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="p-2.5 text-gray-400 hover:text-gold dark:hover:text-gold-light bg-white dark:bg-black/40 border border-gray-200 dark:border-gold/10 rounded-xl shadow-sm transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed group"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
             </button>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="p-2.5 text-gray-400 hover:text-gold dark:hover:text-gold-light bg-white dark:bg-black/40 border border-gray-200 dark:border-gold/10 rounded-xl shadow-sm transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed group"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
             </button>
           </div>
         </div>

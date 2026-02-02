@@ -27,11 +27,21 @@ export async function GET(request: NextRequest) {
     const headers = validColumns.map(i => data.headers[i]);
 
     // Transform to array of objects with row indices, only valid columns
-    // Ensure the row has at least some content in any of the valid columns
+    // Ensure the row has at least some content in any of the valid columns (excluding IDs)
     const rows: Record<string, string | number>[] = [];
+    const internalFieldRegex = /^(id|rowindex|index|no\.|#|fid)$/i;
+
     data.rows.forEach((row, originalIndex) => {
-      const hasContent = validColumns.some(i => row[i] && String(row[i]).trim().length > 0);
-      if (!hasContent) return;
+      const hasRealContent = validColumns.some(i => {
+        const header = data.headers[i];
+        if (internalFieldRegex.test(header)) return false;
+
+        const val = row[i];
+        // Check for actual content, ignoring common invisible characters
+        return val && String(val).replace(/[\u200B-\u200D\uFEFF\s]/g, '').length > 0;
+      });
+
+      if (!hasRealContent) return;
 
       const obj: Record<string, string | number> = {
         id: `${originalIndex + 2}`,
