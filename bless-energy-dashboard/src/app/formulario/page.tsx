@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Header from '@/components/Header';
 import DataTable from '@/components/DataTable';
 import TabSelector from '@/components/TabSelector';
-import * as XLSX from 'xlsx-js-style';
 import { Filter, X, ArrowDownUp } from 'lucide-react';
+import { exportToExcel } from '@/lib/exportUtils';
 
 interface Tab {
   sheetId?: number;
@@ -171,69 +171,10 @@ export default function FormularioPage() {
 
   const handleExport = (displayedRows?: Record<string, string | number>[]) => {
     const dataToExport = displayedRows || filteredRows;
-
-    // 1. Filter headers: only non-empty headers that have data in at least one row
-    const validHeaders = headers.filter(h => {
-      if (!h || !h.trim()) return false;
-      return dataToExport.some(row => String(row[h] || '').trim().length > 0);
+    exportToExcel(dataToExport, headers, {
+      filename: 'formulario_web',
+      sheetName: 'Formulario Web'
     });
-
-    // 2. Build export data using only valid headers, filter empty rows
-    const exportData = dataToExport
-      .map((row) => {
-        const obj: Record<string, string> = {};
-        validHeaders.forEach((header) => {
-          obj[header] = String(row[header] || '').trim();
-        });
-        return obj;
-      })
-      .filter(obj => {
-        const values = validHeaders.map(h => obj[h] || '');
-        return values.slice(0, Math.min(3, values.length)).some(v => v.trim().length > 0);
-      });
-
-    if (exportData.length === 0) return;
-
-    // 3. Create sheet with explicit header order
-    const ws = XLSX.utils.json_to_sheet(exportData, { header: validHeaders });
-
-    // 4. Force exact range: header + data rows only
-    ws['!ref'] = XLSX.utils.encode_range({
-      s: { r: 0, c: 0 },
-      e: { r: exportData.length, c: validHeaders.length - 1 }
-    });
-
-    // 5. Auto-fit column widths
-    ws['!cols'] = validHeaders.map(header => {
-      const maxLen = Math.max(
-        header.length,
-        ...exportData.map(row => String(row[header] || '').length)
-      );
-      return { wch: Math.min(Math.max(maxLen + 2, 12), 60) };
-    });
-
-    // 6. Style header row
-    validHeaders.forEach((_, idx) => {
-      const cellRef = XLSX.utils.encode_cell({ r: 0, c: idx });
-      if (ws[cellRef]) {
-        ws[cellRef].s = {
-          fill: { fgColor: { rgb: 'D4AF37' } },
-          font: { bold: true, color: { rgb: '000000' }, sz: 11 },
-          alignment: { horizontal: 'center', vertical: 'center' },
-        };
-      }
-    });
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Formulario Web');
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `formulario_web_${new Date().toISOString().split('T')[0]}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const estadoKey = headers.find(h => h.toLowerCase().includes('estado')) || 'estado';
@@ -287,11 +228,10 @@ export default function FormularioPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                hasActiveFilters
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${hasActiveFilters
                   ? 'bg-gold/20 text-gold border border-gold/30'
                   : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20'
-              }`}
+                }`}
             >
               <Filter className="w-4 h-4" />
               Filtros
@@ -304,22 +244,20 @@ export default function FormularioPage() {
 
             <button
               onClick={() => setSortOrder(sortOrder === 'recent' ? '' : 'recent')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                sortOrder === 'recent'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${sortOrder === 'recent'
                   ? 'bg-gold/20 text-gold border border-gold/30'
                   : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20'
-              }`}
+                }`}
             >
               <ArrowDownUp className="w-3.5 h-3.5" />
               Mas reciente
             </button>
             <button
               onClick={() => setSortOrder(sortOrder === 'oldest' ? '' : 'oldest')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                sortOrder === 'oldest'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${sortOrder === 'oldest'
                   ? 'bg-gold/20 text-gold border border-gold/30'
                   : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20'
-              }`}
+                }`}
             >
               <ArrowDownUp className="w-3.5 h-3.5" />
               Mas antiguo

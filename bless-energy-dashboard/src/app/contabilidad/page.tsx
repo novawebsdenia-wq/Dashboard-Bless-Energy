@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Header from '@/components/Header';
 import DataTable from '@/components/DataTable';
 import TabSelector from '@/components/TabSelector';
-import * as XLSX from 'xlsx-js-style';
 import { Receipt, Percent, Calculator, Filter, X } from 'lucide-react';
+import { exportToExcel } from '@/lib/exportUtils';
 
 interface Tab {
   sheetId?: number;
@@ -93,71 +93,21 @@ export default function ContabilidadPage() {
 
   const handleExport = (displayedRows?: Record<string, string | number>[]) => {
     const dataToExport = displayedRows || filteredRows;
-
-    const validHeaders = headers.filter(h => {
-      if (!h || !h.trim()) return false;
-      return dataToExport.some(row => String(row[h] || '').trim().length > 0);
+    exportToExcel(dataToExport, headers, {
+      filename: 'contabilidad',
+      sheetName: activeTab || 'Contabilidad'
     });
-
-    const exportData = dataToExport
-      .map((row) => {
-        const obj: Record<string, string> = {};
-        validHeaders.forEach((header) => {
-          obj[header] = String(row[header] || '').trim();
-        });
-        return obj;
-      })
-      .filter(obj => {
-        const values = validHeaders.map(h => obj[h] || '');
-        return values.slice(0, Math.min(3, values.length)).some(v => v.trim().length > 0);
-      });
-
-    if (exportData.length === 0) return;
-
-    const ws = XLSX.utils.json_to_sheet(exportData, { header: validHeaders });
-    ws['!ref'] = XLSX.utils.encode_range({
-      s: { r: 0, c: 0 },
-      e: { r: exportData.length, c: validHeaders.length - 1 }
-    });
-    ws['!cols'] = validHeaders.map(header => {
-      const maxLen = Math.max(
-        header.length,
-        ...exportData.map(row => String(row[header] || '').length)
-      );
-      return { wch: Math.min(Math.max(maxLen + 2, 12), 60) };
-    });
-    validHeaders.forEach((_, idx) => {
-      const cellRef = XLSX.utils.encode_cell({ r: 0, c: idx });
-      if (ws[cellRef]) {
-        ws[cellRef].s = {
-          fill: { fgColor: { rgb: 'D4AF37' } },
-          font: { bold: true, color: { rgb: '000000' }, sz: 11 },
-          alignment: { horizontal: 'center', vertical: 'center' },
-        };
-      }
-    });
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, activeTab || 'Contabilidad');
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `contabilidad_${activeTab || 'datos'}_${new Date().toISOString().split('T')[0]}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   // Parse a number from various formats
   const parseNumber = (value: string | number | undefined): number => {
     if (value === undefined || value === null || value === '') return 0;
-    
+
     let strValue = String(value);
-    
+
     // Remove currency symbols, spaces and percentage signs
     strValue = strValue.replace(/[€$£%\s]/g, '');
-    
+
     // Handle Spanish format (1.234,56) vs English format (1,234.56)
     if (/,\d{1,2}$/.test(strValue)) {
       // Spanish format: 1.234,56 -> 1234.56
@@ -169,7 +119,7 @@ export default function ContabilidadPage() {
       // English format: remove commas
       strValue = strValue.replace(/,/g, '');
     }
-    
+
     const num = parseFloat(strValue);
     return isNaN(num) ? 0 : num;
   };
@@ -302,12 +252,12 @@ export default function ContabilidadPage() {
       if (importeCol) {
         importeTotal += parseNumber(row[importeCol]);
       }
-      
+
       // Calculate IVA
       if (ivaCol) {
         ivaTotal += parseNumber(row[ivaCol]);
       }
-      
+
       // Calculate Total (con IVA)
       if (totalCol) {
         totalGeneral += parseNumber(row[totalCol]);
@@ -318,7 +268,7 @@ export default function ContabilidadPage() {
     if (!totalCol && importeCol && ivaCol) {
       totalGeneral = importeTotal + ivaTotal;
     }
-    
+
     // If we only have total, that's our main number
     if (totalCol && !importeCol && !ivaCol) {
       importeTotal = 0;
@@ -334,8 +284,8 @@ export default function ContabilidadPage() {
 
   // Format currency
   const formatCurrency = (value: number) => {
-    return value.toLocaleString('es-ES', { 
-      style: 'currency', 
+    return value.toLocaleString('es-ES', {
+      style: 'currency',
       currency: 'EUR',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -368,7 +318,7 @@ export default function ContabilidadPage() {
               </div>
             </div>
           </div>
-          
+
           {/* Importe (Base sin IVA) */}
           {calculations.importe.column && (
             <div className="bg-white dark:bg-black/30 border border-blue-200 dark:border-blue-500/20 rounded-xl p-3 sm:p-4 shadow-sm">
@@ -434,11 +384,10 @@ export default function ContabilidadPage() {
         <div className="mb-4">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              hasActiveFilters
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${hasActiveFilters
                 ? 'bg-gold/20 text-gold border border-gold/30'
                 : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20'
-            }`}
+              }`}
           >
             <Filter className="w-4 h-4" />
             Filtros

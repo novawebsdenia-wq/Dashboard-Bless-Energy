@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Header from '@/components/Header';
 import DataTable from '@/components/DataTable';
 import TabSelector from '@/components/TabSelector';
-import * as XLSX from 'xlsx-js-style';
 import { Filter, X, ArrowDownUp } from 'lucide-react';
+import { exportToExcel } from '@/lib/exportUtils';
 
 interface Tab {
   sheetId?: number;
@@ -173,60 +173,10 @@ export default function CalculadoraPage() {
 
   const handleExport = (displayedRows?: Record<string, string | number>[]) => {
     const dataToExport = displayedRows || filteredRows;
-
-    const validHeaders = headers.filter(h => {
-      if (!h || !h.trim()) return false;
-      return dataToExport.some(row => String(row[h] || '').trim().length > 0);
+    exportToExcel(dataToExport, headers, {
+      filename: 'calculadora',
+      sheetName: activeTab
     });
-
-    const exportData = dataToExport
-      .map((row) => {
-        const obj: Record<string, string> = {};
-        validHeaders.forEach((header) => {
-          obj[header] = String(row[header] || '').trim();
-        });
-        return obj;
-      })
-      .filter(obj => {
-        const values = validHeaders.map(h => obj[h] || '');
-        return values.slice(0, Math.min(3, values.length)).some(v => v.trim().length > 0);
-      });
-
-    if (exportData.length === 0) return;
-
-    const ws = XLSX.utils.json_to_sheet(exportData, { header: validHeaders });
-    ws['!ref'] = XLSX.utils.encode_range({
-      s: { r: 0, c: 0 },
-      e: { r: exportData.length, c: validHeaders.length - 1 }
-    });
-    ws['!cols'] = validHeaders.map(header => {
-      const maxLen = Math.max(
-        header.length,
-        ...exportData.map(row => String(row[header] || '').length)
-      );
-      return { wch: Math.min(Math.max(maxLen + 2, 12), 60) };
-    });
-    validHeaders.forEach((_, idx) => {
-      const cellRef = XLSX.utils.encode_cell({ r: 0, c: idx });
-      if (ws[cellRef]) {
-        ws[cellRef].s = {
-          fill: { fgColor: { rgb: 'D4AF37' } },
-          font: { bold: true, color: { rgb: '000000' }, sz: 11 },
-          alignment: { horizontal: 'center', vertical: 'center' },
-        };
-      }
-    });
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, activeTab);
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `calculadora_${activeTab}_${new Date().toISOString().split('T')[0]}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   return (
@@ -278,11 +228,10 @@ export default function CalculadoraPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                hasActiveFilters
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${hasActiveFilters
                   ? 'bg-gold/20 text-gold border border-gold/30'
                   : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20'
-              }`}
+                }`}
             >
               <Filter className="w-4 h-4" />
               Filtros
@@ -295,22 +244,20 @@ export default function CalculadoraPage() {
 
             <button
               onClick={() => setSortOrder(sortOrder === 'recent' ? '' : 'recent')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                sortOrder === 'recent'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${sortOrder === 'recent'
                   ? 'bg-gold/20 text-gold border border-gold/30'
                   : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20'
-              }`}
+                }`}
             >
               <ArrowDownUp className="w-3.5 h-3.5" />
               Mas reciente
             </button>
             <button
               onClick={() => setSortOrder(sortOrder === 'oldest' ? '' : 'oldest')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                sortOrder === 'oldest'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${sortOrder === 'oldest'
                   ? 'bg-gold/20 text-gold border border-gold/30'
                   : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20'
-              }`}
+                }`}
             >
               <ArrowDownUp className="w-3.5 h-3.5" />
               Mas antiguo

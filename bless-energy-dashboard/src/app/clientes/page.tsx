@@ -4,10 +4,8 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Header from '@/components/Header';
 import DataTable from '@/components/DataTable';
 import TabSelector from '@/components/TabSelector';
-import * as XLSX from 'xlsx-js-style';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 import { Filter, X, ArrowDownUp } from 'lucide-react';
+import { exportToExcel, exportToPDF } from '@/lib/exportUtils';
 
 // Extend jsPDF type for autoTable
 declare module 'jspdf' {
@@ -187,109 +185,23 @@ export default function ClientesPage() {
     setSortOrder('');
   };
 
-  const handleExportExcel = (displayedRows?: Record<string, string | number>[]) => {
-    const dataToExport = displayedRows || filteredRows;
-
-    const validHeaders = headers.filter(h => {
-      if (!h || !h.trim()) return false;
-      return dataToExport.some(row => String(row[h] || '').trim().length > 0);
-    });
-
-    const exportData = dataToExport
-      .map((row) => {
-        const obj: Record<string, string> = {};
-        validHeaders.forEach((header) => {
-          obj[header] = String(row[header] || '').trim();
-        });
-        return obj;
-      })
-      .filter(obj => {
-        const values = validHeaders.map(h => obj[h] || '');
-        return values.slice(0, Math.min(3, values.length)).some(v => v.trim().length > 0);
-      });
-
-    if (exportData.length === 0) return;
-
-    const ws = XLSX.utils.json_to_sheet(exportData, { header: validHeaders });
-    ws['!ref'] = XLSX.utils.encode_range({
-      s: { r: 0, c: 0 },
-      e: { r: exportData.length, c: validHeaders.length - 1 }
-    });
-    ws['!cols'] = validHeaders.map(header => {
-      const maxLen = Math.max(
-        header.length,
-        ...exportData.map(row => String(row[header] || '').length)
-      );
-      return { wch: Math.min(Math.max(maxLen + 2, 12), 60) };
-    });
-    validHeaders.forEach((_, idx) => {
-      const cellRef = XLSX.utils.encode_cell({ r: 0, c: idx });
-      if (ws[cellRef]) {
-        ws[cellRef].s = {
-          fill: { fgColor: { rgb: 'D4AF37' } },
-          font: { bold: true, color: { rgb: '000000' }, sz: 11 },
-          alignment: { horizontal: 'center', vertical: 'center' },
-        };
-      }
-    });
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `clientes_${new Date().toISOString().split('T')[0]}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleExportPDF = (displayedRows?: Record<string, string | number>[]) => {
-    const doc = new jsPDF('landscape');
-
-    // Add title
-    doc.setFontSize(18);
-    doc.setTextColor(212, 175, 55); // Gold color
-    doc.text('Bless Energy - Listado de Clientes', 14, 22);
-
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Generado el ${new Date().toLocaleDateString('es-ES')}`, 14, 30);
-
-    // Prepare table data (use displayed rows from DataTable search)
-    const dataToExport = displayedRows || filteredRows;
-    const tableData = dataToExport.map((row) =>
-      headers.map((header) => String(row[header] || ''))
-    );
-
-    // Add table
-    doc.autoTable({
-      head: [headers],
-      body: tableData,
-      startY: 35,
-      styles: {
-        fontSize: 8,
-        cellPadding: 2,
-      },
-      headStyles: {
-        fillColor: [212, 175, 55],
-        textColor: [0, 0, 0],
-        fontStyle: 'bold',
-      },
-      alternateRowStyles: {
-        fillColor: [245, 245, 245],
-      },
-    });
-
-    doc.save(`clientes_${new Date().toISOString().split('T')[0]}.pdf`);
-  };
-
   const handleExport = (displayedRows?: Record<string, string | number>[]) => {
+    const dataToExport = displayedRows || filteredRows;
+    const commonOptions = {
+      filename: 'clientes',
+    };
+
     if (exportFormat === 'pdf') {
-      handleExportPDF(displayedRows);
+      exportToPDF(dataToExport, headers, {
+        ...commonOptions,
+        title: 'Bless Energy - Listado de Clientes',
+        subtitle: `Generado el ${new Date().toLocaleDateString('es-ES')}`
+      });
     } else {
-      handleExportExcel(displayedRows);
+      exportToExcel(dataToExport, headers, {
+        ...commonOptions,
+        sheetName: 'Clientes'
+      });
     }
   };
 
@@ -344,11 +256,10 @@ export default function ClientesPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                hasActiveFilters
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${hasActiveFilters
                   ? 'bg-gold/20 text-gold border border-gold/30'
                   : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20'
-              }`}
+                }`}
             >
               <Filter className="w-4 h-4" />
               Filtros
@@ -362,22 +273,20 @@ export default function ClientesPage() {
             {/* Sort order quick buttons */}
             <button
               onClick={() => setSortOrder(sortOrder === 'recent' ? '' : 'recent')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                sortOrder === 'recent'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${sortOrder === 'recent'
                   ? 'bg-gold/20 text-gold border border-gold/30'
                   : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20'
-              }`}
+                }`}
             >
               <ArrowDownUp className="w-3.5 h-3.5" />
               Mas reciente
             </button>
             <button
               onClick={() => setSortOrder(sortOrder === 'oldest' ? '' : 'oldest')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                sortOrder === 'oldest'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${sortOrder === 'oldest'
                   ? 'bg-gold/20 text-gold border border-gold/30'
                   : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20'
-              }`}
+                }`}
             >
               <ArrowDownUp className="w-3.5 h-3.5" />
               Mas antiguo
@@ -441,21 +350,19 @@ export default function ClientesPage() {
           <div className="flex gap-2">
             <button
               onClick={() => setExportFormat('xlsx')}
-              className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-                exportFormat === 'xlsx'
+              className={`px-3 py-1 rounded-lg text-sm transition-colors ${exportFormat === 'xlsx'
                   ? 'bg-gold text-black'
                   : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20 hover:border-gold/50'
-              }`}
+                }`}
             >
               Excel
             </button>
             <button
               onClick={() => setExportFormat('pdf')}
-              className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-                exportFormat === 'pdf'
+              className={`px-3 py-1 rounded-lg text-sm transition-colors ${exportFormat === 'pdf'
                   ? 'bg-gold text-black'
                   : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20 hover:border-gold/50'
-              }`}
+                }`}
             >
               PDF
             </button>

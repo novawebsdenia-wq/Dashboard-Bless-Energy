@@ -27,12 +27,12 @@ export async function GET(request: NextRequest) {
     const headers = validColumns.map(i => data.headers[i]);
 
     // Transform to array of objects with row indices, only valid columns
-    // Require that at least one of the first 3 columns has content (key identity fields)
-    const firstKeyColumns = validColumns.slice(0, Math.min(3, validColumns.length));
+    // Ensure the row has at least some content in any of the valid columns
     const rows: Record<string, string | number>[] = [];
     data.rows.forEach((row, originalIndex) => {
-      const hasKeyField = firstKeyColumns.some(i => row[i] && String(row[i]).trim().length > 0);
-      if (!hasKeyField) return;
+      const hasContent = validColumns.some(i => row[i] && String(row[i]).trim().length > 0);
+      if (!hasContent) return;
+
       const obj: Record<string, string | number> = {
         id: `${originalIndex + 2}`,
         rowIndex: originalIndex + 2
@@ -74,7 +74,7 @@ export async function PUT(request: NextRequest) {
 
     const spreadsheetId = SHEET_IDS[sheet as keyof typeof SHEET_IDS];
     const range = `${tab || 'Sheet1'}!A${rowIndex}:Z${rowIndex}`;
-    
+
     await updateSheetRow(spreadsheetId, range, [values]);
 
     return NextResponse.json({ success: true });

@@ -1,0 +1,10 @@
+# SaaS Factory Root Gitignore
+node_modules/
+.DS_Store
+.next/
+.env
+.env.local
+out/
+build/
+dist/
+.env*.local
