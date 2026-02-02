@@ -4,6 +4,8 @@ import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { NotificationProvider } from "@/context/NotificationContext";
+import { ToastProvider } from "@/context/ToastContext";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 const geistSans = Geist({
@@ -54,13 +56,16 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <NotificationProvider>
-            <ServiceWorkerRegister />
-            <div className="flex min-h-screen">
-              <Sidebar />
-              <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
-                {children}
-              </main>
-            </div>
+            <ToastProvider>
+              <ServiceWorkerRegister />
+              <GlobalSearch />
+              <div className="flex min-h-screen">
+                <Sidebar />
+                <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
+                  {children}
+                </main>
+              </div>
+            </ToastProvider>
           </NotificationProvider>
         </ThemeProvider>
       </body>

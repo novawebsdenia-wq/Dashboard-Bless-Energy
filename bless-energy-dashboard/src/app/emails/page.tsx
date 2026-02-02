@@ -6,6 +6,7 @@ import DataTable from '@/components/DataTable';
 import TabSelector from '@/components/TabSelector';
 import { Filter, X, ArrowDownUp, Tag } from 'lucide-react';
 import { exportToExcel } from '@/lib/exportUtils';
+import { TableSkeleton, StatsCardSkeleton } from '@/components/Skeleton';
 
 interface Tab {
   sheetId?: number;
@@ -102,6 +103,7 @@ export default function EmailsPage() {
 
   const fechaCol = findColumn(['fecha', 'date', 'dia', 'enviado', 'recibido', 'timestamp', 'created']);
   const categoryCol = findColumn(['categor', 'category', 'tipo', 'type', 'etiqueta', 'label']);
+  const estadoKey = findColumn(['estado']) || '';
 
   const categories = useMemo(() => {
     if (!categoryCol) return [];
@@ -207,6 +209,51 @@ export default function EmailsPage() {
 
       <main className="flex-1 p-8 overflow-y-auto custom-scrollbar">
         <div className="max-w-[1600px] mx-auto space-y-8 pb-12">
+          {/* Stats summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            {isLoading ? (
+              <>
+                <StatsCardSkeleton />
+                <StatsCardSkeleton />
+                <StatsCardSkeleton />
+                <StatsCardSkeleton />
+                <StatsCardSkeleton />
+              </>
+            ) : (
+              <>
+                <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-gray-200 dark:border-gold/20 rounded-xl p-4 shadow-sm col-span-2 sm:col-span-1 animate-fade-in">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Total emails</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {filteredRows.length}{hasActiveFilters ? ` / ${rows.length}` : ''}
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-yellow-200 dark:border-yellow-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:100ms]">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Pendientes</p>
+                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-500">
+                    {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('pendiente')).length}
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-purple-200 dark:border-purple-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:200ms]">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Contactados</p>
+                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-500">
+                    {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('contactado')).length}
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-blue-200 dark:border-blue-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:300ms]">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">En proceso</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-500">
+                    {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('proceso')).length}
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-green-200 dark:border-green-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:400ms]">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Cerrados</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-500">
+                    {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('cerrado')).length}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
           {/* Filter Section */}
           <div>
             <div className="flex flex-wrap items-center gap-3">

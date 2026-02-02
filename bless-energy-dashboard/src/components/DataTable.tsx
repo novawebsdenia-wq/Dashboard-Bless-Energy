@@ -11,7 +11,10 @@ import {
   X,
   Download,
   ExternalLink,
+  Eye,
 } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
+import { DetailSidePanel } from './DetailSidePanel';
 
 // Status options for different fields
 const STATUS_OPTIONS = ['Pendiente', 'Contactado', 'En proceso', 'Cerrado', 'Cancelado'];
@@ -50,6 +53,11 @@ export default function DataTable({
   const [expandedCard, setExpandedCard] = useState<number | null>(null);
   // Optimistic updates - store temporary values while saving
   const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, string>>({});
+  const { toast } = useToast();
+
+  // Detail View State
+  const [selectedRowForDetail, setSelectedRowForDetail] = useState<Record<string, string | number> | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   const rowsPerPage = 10;
 
@@ -170,6 +178,17 @@ export default function DataTable({
       try {
         const values = headers.map((header) => editedValues[header] || '');
         await onUpdate(rowIndex, values);
+        toast({
+          type: 'success',
+          title: 'Registro actualizado',
+          message: 'Los cambios se han guardado correctamente en Google Sheets.'
+        });
+      } catch (error) {
+        toast({
+          type: 'error',
+          title: 'Error al guardar',
+          message: 'No se pudieron guardar los cambios. Por favor, intenta de nuevo.'
+        });
       } finally {
         setIsSaving(false);
       }
@@ -230,7 +249,17 @@ export default function DataTable({
     e.preventDefault();
     e.stopPropagation();
     if (onExport) {
+      toast({
+        type: 'info',
+        title: 'Iniciando exportación',
+        message: 'Estamos preparando tu archivo de descarga...'
+      });
       onExport(filteredRows);
+      toast({
+        type: 'success',
+        title: 'Exportación completada',
+        message: 'El archivo se ha generado correctamente.'
+      });
     }
   };
 
@@ -572,7 +601,13 @@ export default function DataTable({
                 return (
                   <tr
                     key={row.id || index}
-                    className="group hover:bg-gold/[0.02] dark:hover:bg-gold/[0.03] transition-colors"
+                    onClick={() => {
+                      if (!isEditing) {
+                        setSelectedRowForDetail(row);
+                        setIsDetailOpen(true);
+                      }
+                    }}
+                    className="group hover:bg-gold/[0.02] dark:hover:bg-gold/[0.03] transition-colors cursor-pointer"
                   >
                     {visibleHeaders.map((header) => {
                       const fieldType = getFieldType(header);
@@ -707,6 +742,22 @@ export default function DataTable({
             </button>
           </div>
         </div>
+      )}
+
+      {/* Detail Slide-over */}
+      {selectedRowForDetail && (
+        <DetailSidePanel
+          isOpen={isDetailOpen}
+          onClose={() => setIsDetailOpen(false)}
+          title="Detalle del Registro"
+          data={selectedRowForDetail}
+          headers={headers}
+          type={pageType === 'emails' ? 'Email' : pageType === 'clientes' ? 'Cliente' : 'Lead'}
+          onUpdate={onUpdate ? async (values) => {
+            const rowIndex = Number(selectedRowForDetail.rowIndex) || 0;
+            await onUpdate(rowIndex, values);
+          } : undefined}
+        />
       )}
     </div>
   );

@@ -6,6 +6,7 @@ import DataTable from '@/components/DataTable';
 import TabSelector from '@/components/TabSelector';
 import { Filter, X, ArrowDownUp } from 'lucide-react';
 import { exportToExcel, exportToPDF } from '@/lib/exportUtils';
+import { TableSkeleton, StatsCardSkeleton } from '@/components/Skeleton';
 
 // Extend jsPDF type for autoTable
 declare module 'jspdf' {
@@ -221,37 +222,48 @@ export default function ClientesPage() {
         <div className="max-w-[1600px] mx-auto space-y-8 pb-12">
           {/* Stats summary */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-            <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-gray-200 dark:border-gold/20 rounded-xl p-4 shadow-sm col-span-2 sm:col-span-1 animate-fade-in">
-              <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Total clientes</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {filteredRows.length}{hasActiveFilters ? ` / ${rows.length}` : ''}
-              </p>
-            </div>
-            {/* ... other stats cards updated with dark mode vis ... */}
-            <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-yellow-200 dark:border-yellow-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:100ms]">
-              <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Pendientes</p>
-              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-500">
-                {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('pendiente')).length}
-              </p>
-            </div>
-            <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-purple-200 dark:border-purple-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:200ms]">
-              <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Contactados</p>
-              <p className="text-2xl font-bold text-purple-600 dark:text-purple-500">
-                {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('contactado')).length}
-              </p>
-            </div>
-            <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-blue-200 dark:border-blue-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:300ms]">
-              <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">En proceso</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-500">
-                {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('proceso')).length}
-              </p>
-            </div>
-            <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-green-200 dark:border-green-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:400ms]">
-              <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Cerrados</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-500">
-                {filteredRows.filter(r => String(r[estadoKey] || '').toLowerCase().includes('cerrado')).length}
-              </p>
-            </div>
+            {isLoading ? (
+              <>
+                <StatsCardSkeleton />
+                <StatsCardSkeleton />
+                <StatsCardSkeleton />
+                <StatsCardSkeleton />
+                <StatsCardSkeleton />
+              </>
+            ) : (
+              <>
+                <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-gray-200 dark:border-gold/20 rounded-xl p-4 shadow-sm col-span-2 sm:col-span-1 animate-fade-in">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Total clientes</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {filteredRows.length}{hasActiveFilters ? ` / ${rows.length}` : ''}
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-yellow-200 dark:border-yellow-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:100ms]">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">En proceso</p>
+                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-500">
+                    {filteredRows.filter(r => String(r['Estado'] || '').toLowerCase().includes('proceso')).length}
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-blue-200 dark:border-blue-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:200ms]">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Activos</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-500">
+                    {filteredRows.filter(r => String(r['Estado'] || '').toLowerCase().includes('activo')).length}
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-purple-200 dark:border-purple-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:300ms]">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Nuevos</p>
+                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-500">
+                    {filteredRows.filter(r => String(r['Estado'] || '').toLowerCase().includes('nuevo')).length}
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-white/[0.03] backdrop-blur-md border border-red-200 dark:border-red-500/20 rounded-xl p-4 shadow-sm animate-fade-in [animation-delay:400ms]">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">Inactivos</p>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-500">
+                    {filteredRows.filter(r => String(r['Estado'] || '').toLowerCase().includes('inactivo')).length}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Filter Toggle & Panel */}
@@ -325,13 +337,18 @@ export default function ClientesPage() {
             )}
           </div>
 
-          <DataTable
-            headers={headers}
-            rows={filteredRows}
-            onUpdate={handleUpdate}
-            onExport={handleExport}
-            isLoading={isLoading}
-          />
+          {isLoading ? (
+            <TableSkeleton />
+          ) : (
+            <DataTable
+              headers={headers}
+              rows={filteredRows}
+              onUpdate={handleUpdate}
+              onExport={handleExport}
+              isLoading={isLoading}
+              pageType="clientes"
+            />
+          )}
         </div>
       </main>
     </div>

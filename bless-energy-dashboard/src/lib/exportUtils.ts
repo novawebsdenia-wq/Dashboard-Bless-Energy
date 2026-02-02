@@ -121,18 +121,35 @@ export const exportToPDF = (
     const { filename, title, subtitle } = options;
     const doc = new jsPDF('landscape');
 
-    // Add title
-    doc.setFontSize(18);
-    doc.setTextColor(212, 175, 55); // Gold color
-    doc.text(title, 14, 22);
+    // Header Branding
+    doc.setFillColor(20, 20, 20);
+    doc.rect(0, 0, 297, 40, 'F');
+
+    // Logo placeholder / Text as Logo
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(24);
+    doc.setTextColor(212, 175, 55); // Gold
+    doc.text('BLESS', 20, 22);
+    doc.setTextColor(255, 255, 255);
+    doc.text('ENERGY', 92, 22, { align: 'right' });
+
+    // Vertical line in logo
+    doc.setDrawColor(212, 175, 55);
+    doc.setLineWidth(1);
+    doc.line(56, 12, 56, 28);
+
+    // Document Title
+    doc.setFontSize(14);
+    doc.setTextColor(212, 175, 55);
+    doc.text(title.toUpperCase(), 277, 22, { align: 'right' });
 
     if (subtitle) {
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(subtitle, 14, 30);
+        doc.setFontSize(9);
+        doc.setTextColor(180, 180, 180);
+        doc.text(subtitle, 277, 30, { align: 'right' });
     }
 
-    // Filter data (same logic as Excel to be consistent)
+    // Filter and clean data
     const validHeaders = headers.filter(h => h && h.trim());
     const tableData = data
         .map(row => validHeaders.map(h => String(row[h] || '').trim()))
@@ -140,23 +157,42 @@ export const exportToPDF = (
 
     if (tableData.length === 0) return;
 
-    // Add table
+    // Table Implementation
     doc.autoTable({
         head: [validHeaders],
         body: tableData,
-        startY: subtitle ? 35 : 28,
+        startY: 50,
+        margin: { left: 15, right: 15 },
         styles: {
             fontSize: 8,
-            cellPadding: 2,
+            cellPadding: 3,
+            font: 'helvetica',
+            lineColor: [220, 220, 220],
+            lineWidth: 0.1,
         },
         headStyles: {
-            fillColor: [212, 175, 55],
-            textColor: [0, 0, 0],
+            fillColor: [20, 20, 20],
+            textColor: [212, 175, 55],
             fontStyle: 'bold',
+            fontSize: 9,
+            halign: 'center',
+            valign: 'middle',
+        },
+        bodyStyles: {
+            textColor: [50, 50, 50],
         },
         alternateRowStyles: {
-            fillColor: [245, 245, 245],
+            fillColor: [250, 250, 250],
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        didDrawPage: (data: any) => {
+            // Footer
+            const pageCount = doc.getNumberOfPages();
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Generado el ${new Date().toLocaleDateString()} | Página ${pageCount}`, 150, 200, { align: 'center' });
+            doc.text('Bless Energy - Dashboard Inteligente', 20, 200);
+        }
     });
 
     doc.save(`${filename}_${new Date().toISOString().split('T')[0]}.pdf`);
