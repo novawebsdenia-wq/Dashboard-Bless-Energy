@@ -220,7 +220,7 @@ export default function CalculadoraPage() {
 
           {/* Filter Section */}
           <div>
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex flex-wrap items-center gap-3 mb-4">
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${hasActiveFilters
@@ -239,7 +239,7 @@ export default function CalculadoraPage() {
 
               <div className="flex bg-white dark:bg-white/[0.05] border border-gray-200 dark:border-gold/20 rounded-xl overflow-hidden p-1 shadow-sm">
                 <button
-                  onClick={() => setSortOrder('recent')}
+                  onClick={() => setSortOrder(sortOrder === 'recent' ? '' : 'recent')}
                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'recent'
                       ? 'bg-gold text-black shadow-sm'
                       : 'text-gray-500 hover:text-gold'
@@ -248,7 +248,7 @@ export default function CalculadoraPage() {
                   Reciente
                 </button>
                 <button
-                  onClick={() => setSortOrder('oldest')}
+                  onClick={() => setSortOrder(sortOrder === 'oldest' ? '' : 'oldest')}
                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'oldest'
                       ? 'bg-gold text-black shadow-sm'
                       : 'text-gray-500 hover:text-gold'
@@ -265,10 +265,10 @@ export default function CalculadoraPage() {
                     setDateTo('');
                     setSortOrder('');
                   }}
-                  className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
                 >
-                  <X className="w-3.5 h-3.5" />
-                  Limpiar
+                  <X className="w-3 h-3" />
+                  <span className="hidden sm:inline">Limpiar</span>
                 </button>
               )}
             </div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSheetData, updateSheetRow, SHEET_IDS } from '@/lib/google-sheets';
+import { getSheetData, updateSheetRow, appendSheetRow, SHEET_IDS } from '@/lib/google-sheets';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -92,6 +92,33 @@ export async function PUT(request: NextRequest) {
     console.error('API Error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to update data' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { sheet, tab, values } = body;
+
+    if (!sheet || !SHEET_IDS[sheet as keyof typeof SHEET_IDS]) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid sheet parameter' },
+        { status: 400 }
+      );
+    }
+
+    const spreadsheetId = SHEET_IDS[sheet as keyof typeof SHEET_IDS];
+    const range = `${tab || 'Sheet1'}!A:Z`;
+
+    await appendSheetRow(spreadsheetId, range, [values]);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to add data' },
       { status: 500 }
     );
   }

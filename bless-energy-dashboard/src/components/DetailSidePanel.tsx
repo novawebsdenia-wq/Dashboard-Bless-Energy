@@ -11,6 +11,7 @@ interface DetailSidePanelProps {
     headers: string[];
     onUpdate?: (values: string[]) => Promise<void>;
     type?: string;
+    startInEditMode?: boolean;
 }
 
 export function DetailSidePanel({
@@ -19,12 +20,39 @@ export function DetailSidePanel({
     data,
     headers,
     onUpdate,
-    type = 'Registro'
+    type = 'Registro',
+    startInEditMode = false
 }: DetailSidePanelProps) {
     const { toast } = useToast();
-    const [isEditing, setIsEditing] = useState(false);
-    const [editedValues, setEditedValues] = useState<Record<string, string>>({});
+    const [isEditing, setIsEditing] = useState(startInEditMode);
+    const [editedValues, setEditedValues] = useState<Record<string, string>>(() => {
+        if (startInEditMode) {
+            const values: Record<string, string> = {};
+            headers.forEach((header) => {
+                values[header] = String(data[header] || '');
+            });
+            return values;
+        }
+        return {};
+    });
     const [isSaving, setIsSaving] = useState(false);
+
+    // Reset state when panel opens/closes or startInEditMode changes
+    const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+    if (isOpen !== prevIsOpen) {
+        setPrevIsOpen(isOpen);
+        if (isOpen && startInEditMode) {
+            setIsEditing(true);
+            const values: Record<string, string> = {};
+            headers.forEach((header) => {
+                values[header] = String(data[header] || '');
+            });
+            setEditedValues(values);
+        } else if (!isOpen) {
+            setIsEditing(false);
+            setEditedValues({});
+        }
+    }
 
     if (!isOpen) return null;
 
@@ -186,7 +214,7 @@ export function DetailSidePanel({
                         {isEditing ? (
                             <>
                                 <button
-                                    onClick={cancelEditing}
+                                    onClick={startInEditMode ? handleClose : cancelEditing}
                                     className="flex items-center gap-2 text-gray-500 hover:text-gray-700 font-bold text-xs uppercase tracking-widest px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all"
                                 >
                                     <X className="w-4 h-4" />
@@ -198,7 +226,7 @@ export function DetailSidePanel({
                                     className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-gold to-gold-dark text-black rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-gold/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
                                 >
                                     <Save className="w-4 h-4" />
-                                    {isSaving ? 'Guardando...' : 'Guardar Cambios'}
+                                    {isSaving ? 'Guardando...' : startInEditMode ? 'Crear' : 'Guardar Cambios'}
                                 </button>
                             </>
                         ) : (

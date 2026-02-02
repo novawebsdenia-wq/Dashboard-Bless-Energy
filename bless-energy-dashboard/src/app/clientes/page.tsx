@@ -3,20 +3,14 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import Header from '@/components/Header';
 import DataTable from '@/components/DataTable';
-import { Filter, X, ArrowDownUp } from 'lucide-react';
+import { DetailSidePanel } from '@/components/DetailSidePanel';
+import { Filter, X, UserPlus } from 'lucide-react';
 import { exportToExcel } from '@/lib/exportUtils';
 import { TableSkeleton, StatsCardSkeleton } from '@/components/Skeleton';
-
-// Extend jsPDF type for autoTable
-declare module 'jspdf' {
-  interface jsPDF {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    autoTable: (options: any) => jsPDF;
-  }
-}
-
+import { useToast } from '@/context/ToastContext';
 
 export default function ClientesPage() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('');
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<Record<string, string | number>[]>([]);
@@ -27,6 +21,9 @@ export default function ClientesPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest' | ''>('');
+
+  // Add client panel
+  const [showAddPanel, setShowAddPanel] = useState(false);
 
   const fetchTabs = useCallback(async () => {
     try {
@@ -95,6 +92,28 @@ export default function ClientesPage() {
     }
   };
 
+  const handleAddClient = async (values: string[]) => {
+    const response = await fetch('/api/sheets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sheet: 'clientes',
+        tab: activeTab,
+        values,
+      }),
+    });
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Error adding client');
+    }
+    toast({
+      type: 'success',
+      title: 'Cliente creado',
+      message: 'El nuevo cliente se ha añadido correctamente.'
+    });
+    fetchData();
+  };
+
   // Parse date+time from DD/MM/YYYY HH:MM:SS or DD/MM/YYYY formats
   const parseFilterDate = (dateStr: string): Date | null => {
     if (!dateStr) return null;
@@ -157,15 +176,18 @@ export default function ClientesPage() {
 
   const handleExport = (displayedRows?: Record<string, string | number>[]) => {
     const dataToExport = displayedRows || filteredRows;
-    const commonOptions = {
-      filename: 'clientes',
-    };
-
     exportToExcel(dataToExport, headers, {
-      ...commonOptions,
+      filename: 'clientes',
       sheetName: 'Clientes'
     });
   };
+
+  // Empty data for the add client panel
+  const emptyClientData = useMemo(() => {
+    const obj: Record<string, string | number> = {};
+    headers.forEach(h => { obj[h] = ''; });
+    return obj;
+  }, [headers]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -201,7 +223,7 @@ export default function ClientesPage() {
 
           {/* Filter Section */}
           <div>
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex flex-wrap items-center gap-3 mb-4">
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${hasActiveFilters
@@ -210,7 +232,8 @@ export default function ClientesPage() {
                   }`}
               >
                 <Filter className="w-3.5 h-3.5" />
-                Filtros Avanzados
+                <span className="hidden sm:inline">Filtros Avanzados</span>
+                <span className="sm:hidden">Filtros</span>
                 {hasActiveFilters && (
                   <span className="bg-black text-gold text-[9px] px-1.5 py-0.5 rounded-full font-black ml-1">
                     {[dateFrom || dateTo, sortOrder].filter(Boolean).length}
@@ -220,7 +243,7 @@ export default function ClientesPage() {
 
               <div className="flex bg-white dark:bg-white/[0.05] border border-gray-200 dark:border-gold/20 rounded-xl overflow-hidden p-1 shadow-sm">
                 <button
-                  onClick={() => setSortOrder('recent')}
+                  onClick={() => setSortOrder(sortOrder === 'recent' ? '' : 'recent')}
                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'recent'
                       ? 'bg-gold text-black shadow-sm'
                       : 'text-gray-500 hover:text-gold'
@@ -229,7 +252,7 @@ export default function ClientesPage() {
                   Reciente
                 </button>
                 <button
-                  onClick={() => setSortOrder('oldest')}
+                  onClick={() => setSortOrder(sortOrder === 'oldest' ? '' : 'oldest')}
                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'oldest'
                       ? 'bg-gold text-black shadow-sm'
                       : 'text-gray-500 hover:text-gold'
@@ -246,12 +269,22 @@ export default function ClientesPage() {
                     setDateTo('');
                     setSortOrder('');
                   }}
-                  className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
                 >
-                  <X className="w-3.5 h-3.5" />
-                  Limpiar
+                  <X className="w-3 h-3" />
+                  <span className="hidden sm:inline">Limpiar</span>
                 </button>
               )}
+
+              {/* Add Client Button */}
+              <button
+                onClick={() => setShowAddPanel(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all bg-gradient-to-r from-gold to-gold-dark text-black shadow-lg shadow-gold/20 hover:scale-105 active:scale-95 ml-auto"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Añadir Cliente</span>
+                <span className="sm:hidden">Añadir</span>
+              </button>
             </div>
 
             {showFilters && (
@@ -286,6 +319,19 @@ export default function ClientesPage() {
           )}
         </div>
       </main>
+
+      {/* Add Client Side Panel */}
+      <DetailSidePanel
+        isOpen={showAddPanel}
+        onClose={() => setShowAddPanel(false)}
+        data={emptyClientData}
+        headers={headers}
+        onUpdate={async (values) => {
+          await handleAddClient(values);
+        }}
+        type="Nuevo Cliente"
+        startInEditMode
+      />
     </div>
   );
 }

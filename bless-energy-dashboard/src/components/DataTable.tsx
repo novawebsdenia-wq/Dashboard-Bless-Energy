@@ -653,7 +653,8 @@ export default function DataTable({
                           ) : fieldType !== 'text' && showStatusSelectors && onUpdate ? (
                             <select
                               value={currentValue}
-                              onChange={(e) => handleQuickStatusChange(row, header, e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => { e.stopPropagation(); handleQuickStatusChange(row, header, e.target.value); }}
                               disabled={isSaving}
                               className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-tight border-0 cursor-pointer shadow-sm transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-gold/10 ${getStatusClass(currentValue)}`}
                             >
@@ -667,6 +668,7 @@ export default function DataTable({
                               href={currentValue}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
                               className="inline-flex items-center gap-1.5 text-gold font-bold hover:text-gold-light transition-all hover:translate-x-1"
                             >
                               <ExternalLink className="w-4 h-4" />
@@ -681,7 +683,7 @@ export default function DataTable({
                       );
                     })}
                     {onUpdate && (
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                           {isEditing ? (
                             <>
