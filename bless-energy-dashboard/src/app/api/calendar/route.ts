@@ -33,6 +33,10 @@ export async function POST(request: Request) {
         const event = await createEvent(eventData);
 
         // Send email confirmation via n8n if toggle is enabled
+        console.log('[N8N DEBUG] sendInvitation:', sendInvitation);
+        console.log('[N8N DEBUG] clientEmail:', clientEmail);
+        console.log('[N8N DEBUG] N8N_WEBHOOK_URL:', process.env.N8N_WEBHOOK_URL ? 'SET' : 'NOT SET');
+
         if (sendInvitation && clientEmail && process.env.N8N_WEBHOOK_URL) {
             try {
                 // Extract client data from event
