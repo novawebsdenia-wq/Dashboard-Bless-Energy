@@ -57,6 +57,7 @@ interface Client {
     telefono?: string;
     email?: string;
     direccion?: string;
+    poblacion?: string;
 }
 
 export default function CalendarioPage() {
@@ -68,6 +69,7 @@ export default function CalendarioPage() {
     // Form States
     const [selectedClient, setSelectedClient] = useState<string>('');
     const [formAddress, setFormAddress] = useState('');
+    const [formCity, setFormCity] = useState('');
     const [formPhone, setFormPhone] = useState('');
     const [formEmail, setFormEmail] = useState('');
 
@@ -114,7 +116,8 @@ export default function CalendarioPage() {
                         nombre: row['Nombre'] || row['nombre'] || row['TITLE'] || Object.values(row)[2] || 'S/N',
                         telefono: findVal('telef', 'movil', 'celular', 'ph', 'tfno', 'mobile', 'contact'),
                         email: findVal('email', 'correo', 'mail'),
-                        direccion: findVal('direc', 'domic', 'ubic', 'calle')
+                        direccion: findVal('direc', 'domic', 'ubic', 'calle'),
+                        poblacion: findVal('poblacion', 'población', 'ciudad', 'city', 'municipio', 'localidad')
                     };
                 }).filter((c: any) => c.nombre !== 'S/N');
                 setClients(clientList);
@@ -170,6 +173,7 @@ export default function CalendarioPage() {
         const title = formTitle;
         const clientName = selectedClient;
         const address = formAddress;
+        const city = formCity;
 
         // Time & Date logic
         const startDateTime = new Date(selectedDate);
@@ -184,6 +188,7 @@ ${formNotes}
 Cliente: ${clientName}
 Teléfono: ${formPhone}
 Email: ${formEmail}
+Población: ${city}
 `.trim();
 
         const endDateTime = new Date(startDateTime);
@@ -229,6 +234,7 @@ Email: ${formEmail}
                 // Reset form
                 setSelectedClient('');
                 setFormAddress('');
+                setFormCity('');
                 setFormPhone('');
                 setFormEmail('');
                 setFormTitle('');
@@ -403,6 +409,7 @@ Email: ${formEmail}
                                         // Reset fields when opening new
                                         setSelectedClient('');
                                         setFormAddress('');
+                                        setFormCity('');
                                         setFormPhone('');
                                         setFormEmail('');
                                         setFormTitle('');
@@ -476,9 +483,11 @@ Email: ${formEmail}
                                                             // Extract fields from the block
                                                             const phoneMatch = desc.match(/Teléfono: (.*)/);
                                                             const emailMatch = desc.match(/Email: (.*)/);
+                                                            const cityMatch = desc.match(/Población: (.*)/);
 
                                                             setFormPhone(phoneMatch ? phoneMatch[1].trim() : '');
                                                             setFormEmail(emailMatch ? emailMatch[1].trim() : '');
+                                                            setFormCity(cityMatch ? cityMatch[1].trim() : '');
                                                             setFormAddress(event.location || '');
 
                                                             // 3. Parse Time & Duration
@@ -595,11 +604,13 @@ Email: ${formEmail}
                                             const client = clients.find(c => c.nombre === name);
                                             if (client) {
                                                 setFormAddress(client.direccion || '');
+                                                setFormCity(client.poblacion || '');
                                                 setFormPhone(client.telefono || '');
                                                 setFormEmail(client.email || '');
                                             } else {
                                                 // If deselected or empty, clear? Or keep? Let's clear to avoid confusion
                                                 setFormAddress('');
+                                                setFormCity('');
                                                 setFormPhone('');
                                                 setFormEmail('');
                                             }
@@ -647,14 +658,24 @@ Email: ${formEmail}
                                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                     <MapPin className="w-3 h-3 text-gold" /> Ubicación Exacta
                                 </label>
-                                <input
-                                    name="address"
-                                    type="text"
-                                    value={formAddress}
-                                    onChange={(e) => setFormAddress(e.target.value)}
-                                    placeholder="Calle, Número, Ciudad"
-                                    className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
-                                />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <input
+                                        name="address"
+                                        type="text"
+                                        value={formAddress}
+                                        onChange={(e) => setFormAddress(e.target.value)}
+                                        placeholder="Calle, Número"
+                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
+                                    />
+                                    <input
+                                        name="city"
+                                        type="text"
+                                        value={formCity}
+                                        onChange={(e) => setFormCity(e.target.value)}
+                                        placeholder="Población"
+                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
+                                    />
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
