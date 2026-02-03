@@ -23,6 +23,14 @@ interface Stats {
   clientesNuevos: number;
   sourceData: { name: string; value: number }[];
   recentActivity: Activity[];
+  todaysAppointments?: {
+    count: number;
+    nextAppointment?: {
+      title: string;
+      time: string;
+      location?: string;
+    };
+  };
 }
 
 const ITEMS_PER_PAGE = 5;
@@ -131,6 +139,56 @@ export default function Dashboard() {
         onRefresh={fetchStats}
         isLoading={isLoading}
       />
+
+      {/* TODAY'S APPOINTMENTS WIDGET */}
+      {!isLoading && stats?.todaysAppointments && (
+        <div className="px-8 pb-2">
+          <div className="max-w-[1600px] mx-auto">
+            <div className="bg-gradient-to-r from-gray-900 to-black dark:from-white/[0.05] dark:to-white/[0.02] rounded-3xl p-1 border border-gray-200 dark:border-gold/20 shadow-xl">
+              <div className="bg-white dark:bg-[#080808] rounded-[1.4rem] p-6 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gold/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+
+                <div className="flex items-center gap-6 relative z-10 w-full sm:w-auto">
+                  <div className="w-16 h-16 bg-gold text-black rounded-2xl flex flex-col items-center justify-center shadow-lg shadow-gold/20 shrink-0">
+                    <span className="text-2xl font-black leading-none">{stats.todaysAppointments.count}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-tighter">Citas</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">Agenda de Hoy</h3>
+                    {stats.todaysAppointments.nextAppointment ? (
+                      <div className="flex items-center gap-3 mt-1 text-gray-500 dark:text-gray-400">
+                        <span className="text-xs font-bold bg-green-500/10 text-green-600 px-2 py-0.5 rounded-lg flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                          {stats.todaysAppointments.nextAppointment.time}
+                        </span>
+                        <span className="text-xs font-bold truncate max-w-[200px]">
+                          {stats.todaysAppointments.nextAppointment.title}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-xs font-medium text-gray-400 mt-1">No hay más citas próximas hoy.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 relative z-10 w-full sm:w-auto">
+                  {stats.todaysAppointments.nextAppointment?.location && (
+                    <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-gold/10">
+                      <Clock className="w-3.5 h-3.5 text-gold" />
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide truncate max-w-[150px]">
+                        {stats.todaysAppointments.nextAppointment.location}
+                      </span>
+                    </div>
+                  )}
+                  <a href="/calendario" className="flex-1 sm:flex-none text-center px-6 py-3 bg-black dark:bg-white text-white dark:text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg">
+                    Ver Calendario
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1 p-8 overflow-y-auto custom-scrollbar">
         <div className="max-w-[1600px] mx-auto space-y-8 pb-12">
