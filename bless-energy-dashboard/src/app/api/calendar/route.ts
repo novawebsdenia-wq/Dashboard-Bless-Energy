@@ -16,7 +16,26 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
+
+        // Add default reminders if not present
+        if (!body.reminders) {
+            body.reminders = {
+                useDefault: false,
+                overrides: [
+                    { method: 'email', minutes: 2 * 24 * 60 }, // 2 days before
+                    { method: 'popup', minutes: 2 * 60 },      // 2 hours before
+                    { method: 'popup', minutes: 60 }           // 1 hour before
+                ]
+            };
+        }
+
         const event = await createEvent(body);
+
+        // Notify Team Logic
+        // In a real production environment, this would call an email service or Slack webhook
+        console.log(`[TEAM NOTIFICATION] New Appointment Scheduled: ${body.summary} at ${body.start.dateTime}`);
+        // TODO: Integrate with actual email service (e.g. Resend) or n8n webhook
+
         return NextResponse.json({ success: true, data: event });
     } catch (error: any) {
         console.error('Calendar POST Error:', error);

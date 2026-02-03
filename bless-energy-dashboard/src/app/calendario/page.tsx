@@ -74,8 +74,11 @@ export default function CalendarioPage() {
                 setEvents(calData.data);
             }
 
-            // Fetch Clients
-            const clientRes = await fetch('/api/sheets?sheet=clientes');
+            // Fetch Clients - Try 'Clientes' tab first, then default
+            let clientRes = await fetch('/api/sheets?sheet=clientes&tab=Clientes');
+            if (!clientRes.ok) {
+                clientRes = await fetch('/api/sheets?sheet=clientes');
+            }
             const clientData = await clientRes.json();
             if (clientData.success && clientData.data) {
                 const clientList = clientData.data.rows.map((row: any) => ({
@@ -251,8 +254,8 @@ export default function CalendarioPage() {
                     >
                         <div className="flex justify-between items-start mb-2">
                             <span className={`text-xs sm:text-sm font-black transition-transform group-hover:scale-110 ${isToday(day)
-                                    ? 'w-7 h-7 flex items-center justify-center bg-gold text-black rounded-full shadow-lg shadow-gold/30'
-                                    : isSameDay(day, selectedDate) ? 'text-gold scale-110' : 'text-gray-400 dark:text-gray-500'
+                                ? 'w-7 h-7 flex items-center justify-center bg-gold text-black rounded-full shadow-lg shadow-gold/30'
+                                : isSameDay(day, selectedDate) ? 'text-gold scale-110' : 'text-gray-400 dark:text-gray-500'
                                 }`}>
                                 {format(day, 'd')}
                             </span>
@@ -449,7 +452,7 @@ export default function CalendarioPage() {
                                 <input name="address" type="text" placeholder="Calle, Número, Ciudad" className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30" />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                         <Clock className="w-3 h-3 text-gold" /> Hora de Inicio
