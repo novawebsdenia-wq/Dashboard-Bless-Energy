@@ -17,18 +17,14 @@ export async function GET() {
 }
 
 // Función CRÍTICA: Extraer hora y fecha LITERALMENTE del string ISO
-// Sin new Date(), sin zonas horarias, sin interpretaciones del servidor.
-// Entrada: "2026-02-03T20:30:00+01:00" -> Salida: "20:30"
 function extractRawDateTime(isoString: string) {
     if (!isoString) return { date: '', time: '' };
 
-    // El formato ISO siempre viene como YYYY-MM-DDTHH:mm:ss...
-    // Simplemente partimos por la 'T'
+    // El formato ISO local del frontend viene como YYYY-MM-DDTHH:mm:ss
     const parts = isoString.split('T');
     if (parts.length < 2) return { date: isoString, time: '' };
 
-    const date = parts[0]; // "2026-02-03"
-    // La hora son los primeros 5 caracteres después de la T: "20:30"
+    const date = parts[0];
     const time = parts[1].substring(0, 5);
 
     return { date, time };
@@ -38,6 +34,15 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { sendInvitation, clientPhone, clientDuration, clientEmail, ...eventData } = body;
+
+        // FIX: Google Calendar exige zona horaria si el string no tiene offset (Z o +hh:mm)
+        // Como mandamos "2026-02-03T10:00:00" (Local), debemos decir que es Madrid.
+        if (eventData.start && !eventData.start.timeZone) {
+            eventData.start.timeZone = 'Europe/Madrid';
+        }
+        if (eventData.end && !eventData.end.timeZone) {
+            eventData.end.timeZone = 'Europe/Madrid';
+        }
 
         // Add default reminders if not present
         if (!eventData.reminders) {
@@ -70,12 +75,7 @@ export async function POST(request: Request) {
                 const [address = '', city = ''] = location.split(',').map((s: string) => s.trim());
 
                 // USO LA FUNCIÓN SEGURA
-                // eventData.start.dateTime viene directo del frontend, ej: "2026-02-03T21:30:00.000Z" (si fuera UTC)
-                // PERO OJO: Si el input original era local y se convirtió a UTC antes de llegar aquí, hay que tener cuidado.
-                // Lo mejor es confiar en que la API de Google Calendar devuelve la hora correcta en el campo 'dateTime'
-                // O usar el input raw si google calendar lo devuelve bien.
-
-                // Vamos a usar el string que enviamos a Google, que sabemos que es el correcto que montamos en page.tsx
+                // eventData.start.dateTime ahora es el string "local" que mandó el frontend
                 const rawStart = eventData.start.dateTime;
                 const { date, time } = extractRawDateTime(rawStart);
 
@@ -116,10 +116,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true, data: event });
     } catch (error: any) {
         console.error('Calendar POST Error:', error);
-        let message = error.message;
-        if (message.includes('notFound')) message = 'Calendario no encontrado. Verifica tu GOOGLE_CALENDAR_ID.';
         return NextResponse.json(
-            { success: false, error: message },
+            { success: false, error: error.message },
             { status: 500 }
         );
     }
@@ -129,6 +127,15 @@ export async function PUT(request: Request) {
     try {
         const body = await request.json();
         const { eventId, sendInvitation, clientPhone, clientDuration, clientEmail, ...eventData } = body;
+
+        // FIX: Inyectar TimeZone para Google
+        if (eventData.start && !eventData.start.timeZone) {
+            eventData.start.timeZone = 'Europe/Madrid';
+        }
+        if (eventData.end && !eventData.end.timeZone) {
+            eventData.end.timeZone = 'Europe/Madrid';
+        }
+
         const event = await updateEvent(eventId, eventData);
 
         if (sendInvitation && clientEmail && WEBHOOK_URL) {
