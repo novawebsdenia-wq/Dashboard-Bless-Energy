@@ -10,12 +10,14 @@ import {
     MapPin,
     AlignLeft,
     X,
-    Calendar as CalendarIcon,
-    User,
-    Navigation,
-    FileText,
+    Calendar,
+    Pencil,
+    Bell,
     CalendarDays,
-    Trash2
+    Trash2,
+    FileText,
+    User,
+    Calendar as CalendarIcon // Re-adding as alias to fix usage
 } from 'lucide-react';
 import {
     format,
@@ -72,6 +74,7 @@ export default function CalendarioPage() {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
     const { toast } = useToast();
 
     const fetchData = useCallback(async () => {
@@ -103,7 +106,7 @@ export default function CalendarioPage() {
 
                     return {
                         nombre: row['Nombre'] || row['nombre'] || row['TITLE'] || Object.values(row)[2] || 'S/N',
-                        telefono: findVal('telef', 'movil', 'celular', 'ph'),
+                        telefono: findVal('telef', 'movil', 'celular', 'ph', 'tfno', 'mobile', 'contact'),
                         email: findVal('email', 'correo', 'mail'),
                         direccion: findVal('direc', 'domic', 'ubic', 'calle')
                     };
@@ -190,28 +193,37 @@ Email: ${formEmail}
 
         const fullTitle = clientName ? `${title} - ${clientName}` : title;
 
+
         setIsLoading(true);
         try {
+            const method = editingEvent ? 'PUT' : 'POST';
+            const payload: any = {
+                summary: fullTitle,
+                location: address,
+                description: fullDescription,
+                start: { dateTime: startDateTime.toISOString() },
+                end: { dateTime: endDateTime.toISOString() }
+            };
+
+            if (editingEvent) {
+                payload.eventId = editingEvent.id;
+            }
+
             const response = await fetch('/api/calendar', {
-                method: 'POST',
+                method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    summary: fullTitle,
-                    location: address,
-                    description: fullDescription,
-                    start: { dateTime: startDateTime.toISOString() },
-                    end: { dateTime: endDateTime.toISOString() }
-                })
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
             if (data.success) {
                 toast({
                     type: 'success',
-                    title: 'Cita guardada',
-                    message: 'La cita se ha sincronizado correctamente con Google Calendar.'
+                    title: editingEvent ? 'Cita Actualizada' : 'Cita Guardada',
+                    message: editingEvent ? 'Los cambios se han guardado correctamente.' : 'La cita se ha sincronizado correctamente con Google Calendar.'
                 });
                 setIsAddModalOpen(false);
+                setEditingEvent(null);
                 // Reset form
                 setSelectedClient('');
                 setFormAddress('');
@@ -416,6 +428,30 @@ Email: ${formEmail}
                                                             : 'Todo el día'}
                                                     </div>
                                                     <button
+                                                        onClick={() => {
+                                                            setEditingEvent(event);
+                                                            // Pre-fill form
+                                                            // Extract contact info from description if possible
+                                                            const desc = event.description || '';
+                                                            const phoneMatch = desc.match(/Teléfono: (.*)/);
+                                                            const emailMatch = desc.match(/Email: (.*)/);
+
+                                                            setFormPhone(phoneMatch ? phoneMatch[1].trim() : '');
+                                                            setFormEmail(emailMatch ? emailMatch[1].trim() : '');
+                                                            setSelectedClient(''); // Hard to match back to client without ID, keep empty for now to avoid accidental changes
+                                                            setFormAddress(event.location || '');
+
+                                                            // Parse time
+                                                            const eventStart = new Date(event.start.dateTime || event.start.date || '');
+                                                            // Adjust component state if we needed selectedDate to match... actually user can edit any event so we might just leave selectedDate alone
+
+                                                            setIsAddModalOpen(true);
+                                                        }}
+                                                        className="p-2 text-gray-400 hover:text-gold hover:bg-gold/10 rounded-xl transition-all mr-1"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                    <button
                                                         onClick={() => handleDelete(event.id)}
                                                         disabled={isDeleting === event.id}
                                                         className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
@@ -463,7 +499,9 @@ Email: ${formEmail}
                     <div className="bg-white dark:bg-[#080808] w-full max-w-xl rounded-[3.5rem] border border-gray-200 dark:border-gold/20 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
                         <div className="p-8 sm:p-10 border-b border-gray-100 dark:border-gold/10 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
                             <div>
-                                <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Nueva Cita</h3>
+                                <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
+                                    {editingEvent ? 'Editar Cita' : 'Nueva Cita'}
+                                </h3>
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-2 flex items-center gap-2">
                                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                                     Conexión Cloud Activa
@@ -585,7 +623,7 @@ Email: ${formEmail}
                             </div>
 
                             <button type="submit" disabled={isLoading} className="w-full py-5 sm:py-6 bg-gradient-to-br from-gold via-gold to-gold-dark text-black text-[10px] sm:text-[11px] font-black uppercase tracking-[0.4em] rounded-2xl shadow-2xl shadow-gold/30 hover:shadow-gold/50 hover:scale-[1.01] active:scale-95 transition-all duration-300 disabled:opacity-50">
-                                {isLoading ? 'Sincronizando con la Nube...' : 'Publicar Cita en Google'}
+                                {isLoading ? 'Sincronizando...' : (editingEvent ? 'Guardar Cambios' : 'Publicar Cita')}
                             </button>
                         </form>
                     </div>
