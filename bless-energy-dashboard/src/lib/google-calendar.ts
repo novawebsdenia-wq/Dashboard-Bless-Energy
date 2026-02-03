@@ -36,12 +36,13 @@ export async function listEvents() {
     }
 }
 
-export async function createEvent(event: any, sendUpdates: boolean = false) {
+export async function createEvent(event: any) {
     try {
         const response = await calendar.events.insert({
             calendarId: CALENDAR_ID,
             requestBody: event,
-            sendUpdates: sendUpdates ? 'all' : 'none',
+            // NEVER send updates via Google Calendar (Service Accounts can't send emails)
+            sendUpdates: 'none',
         });
         return response.data;
     } catch (error) {
@@ -50,13 +51,14 @@ export async function createEvent(event: any, sendUpdates: boolean = false) {
     }
 }
 
-export async function updateEvent(eventId: string, event: any, sendUpdates: boolean = false) {
+export async function updateEvent(eventId: string, event: any) {
     try {
         const response = await calendar.events.update({
             calendarId: CALENDAR_ID,
             eventId,
             requestBody: event,
-            sendUpdates: sendUpdates ? 'all' : 'none',
+            // NEVER send updates via Google Calendar (Service Accounts can't send emails)
+            sendUpdates: 'none',
         });
         return response.data;
     } catch (error) {

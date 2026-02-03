@@ -30,7 +30,7 @@ export async function POST(request: Request) {
             };
         }
 
-        const event = await createEvent(eventData, sendInvitation);
+        const event = await createEvent(eventData);
 
         // Send email confirmation via n8n if toggle is enabled
         if (sendInvitation && eventData.attendees?.[0]?.email && process.env.N8N_WEBHOOK_URL) {
@@ -90,7 +90,7 @@ export async function PUT(request: Request) {
     try {
         const body = await request.json();
         const { eventId, sendInvitation, clientPhone, clientDuration, ...eventData } = body;
-        const event = await updateEvent(eventId, eventData, sendInvitation);
+        const event = await updateEvent(eventId, eventData);
 
         // Send email confirmation via n8n if toggle is enabled
         if (sendInvitation && eventData.attendees?.[0]?.email && process.env.N8N_WEBHOOK_URL) {
