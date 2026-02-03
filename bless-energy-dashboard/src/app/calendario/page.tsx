@@ -52,6 +52,9 @@ interface CalendarEvent {
 interface Client {
     nombre: string;
     id?: string;
+    telefono?: string;
+    email?: string;
+    direccion?: string;
 }
 
 export default function CalendarioPage() {
@@ -59,6 +62,13 @@ export default function CalendarioPage() {
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Form States
+    const [selectedClient, setSelectedClient] = useState<string>('');
+    const [formAddress, setFormAddress] = useState('');
+    const [formPhone, setFormPhone] = useState('');
+    const [formEmail, setFormEmail] = useState('');
+
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -81,9 +91,23 @@ export default function CalendarioPage() {
             }
             const clientData = await clientRes.json();
             if (clientData.success && clientData.data) {
-                const clientList = clientData.data.rows.map((row: any) => ({
-                    nombre: row['Nombre'] || row['nombre'] || row['TITLE'] || Object.values(row)[2] || 'S/N'
-                })).filter((c: any) => c.nombre !== 'S/N');
+                const clientList = clientData.data.rows.map((row: any) => {
+                    // Helper to find value case-insensitively
+                    const findVal = (...keys: string[]) => {
+                        for (const k of keys) {
+                            const foundKey = Object.keys(row).find(rk => rk.toLowerCase().includes(k.toLowerCase()));
+                            if (foundKey && row[foundKey]) return row[foundKey];
+                        }
+                        return '';
+                    };
+
+                    return {
+                        nombre: row['Nombre'] || row['nombre'] || row['TITLE'] || Object.values(row)[2] || 'S/N',
+                        telefono: findVal('telef', 'movil', 'celular', 'ph'),
+                        email: findVal('email', 'correo', 'mail'),
+                        direccion: findVal('direc', 'domic', 'ubic', 'calle')
+                    };
+                }).filter((c: any) => c.nombre !== 'S/N');
                 setClients(clientList);
             }
         } catch (error) {
@@ -134,8 +158,12 @@ export default function CalendarioPage() {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
         const title = formData.get('title') as string;
-        const clientName = formData.get('client') as string;
-        const address = formData.get('address') as string;
+        // Client name is now handled via state selectedClient but also form data
+        const clientName = selectedClient;
+
+        // We use state values for these now to allow editing after auto-fill
+        const address = formAddress;
+
         const time = formData.get('time') as string;
         const duration = formData.get('duration') as string;
         const notes = formData.get('notes') as string;
@@ -143,6 +171,16 @@ export default function CalendarioPage() {
         const startDateTime = new Date(selectedDate);
         const [hours, minutes] = time.split(':');
         startDateTime.setHours(parseInt(hours), parseInt(minutes));
+
+        // Append contact info to description for Google Calendar
+        const fullDescription = `
+${notes}
+
+--- Detalles del Cliente ---
+Cliente: ${clientName}
+Teléfono: ${formPhone}
+Email: ${formEmail}
+`.trim();
 
         const endDateTime = new Date(startDateTime);
         if (duration === '1 hora') endDateTime.setHours(endDateTime.getHours() + 1);
@@ -160,7 +198,7 @@ export default function CalendarioPage() {
                 body: JSON.stringify({
                     summary: fullTitle,
                     location: address,
-                    description: notes,
+                    description: fullDescription,
                     start: { dateTime: startDateTime.toISOString() },
                     end: { dateTime: endDateTime.toISOString() }
                 })
@@ -174,6 +212,11 @@ export default function CalendarioPage() {
                     message: 'La cita se ha sincronizado correctamente con Google Calendar.'
                 });
                 setIsAddModalOpen(false);
+                // Reset form
+                setSelectedClient('');
+                setFormAddress('');
+                setFormPhone('');
+                setFormEmail('');
                 fetchData();
             } else {
                 throw new Error(data.error);
@@ -337,7 +380,14 @@ export default function CalendarioPage() {
                                     </h3>
                                 </div>
                                 <button
-                                    onClick={() => setIsAddModalOpen(true)}
+                                    onClick={() => {
+                                        setIsAddModalOpen(true);
+                                        // Reset fields when opening
+                                        setSelectedClient('');
+                                        setFormAddress('');
+                                        setFormPhone('');
+                                        setFormEmail('');
+                                    }}
                                     className="p-4 sm:p-5 bg-gold text-black rounded-2xl shadow-xl shadow-gold/20 hover:scale-110 active:scale-95 transition-all border-none"
                                 >
                                     <Plus className="w-6 h-6 sm:w-7 sm:h-7" />
@@ -436,7 +486,26 @@ export default function CalendarioPage() {
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                         <User className="w-3 h-3 text-gold" /> Seleccionar Cliente
                                     </label>
-                                    <select name="client" className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 appearance-none transition-all">
+                                    <select
+                                        name="client"
+                                        value={selectedClient}
+                                        onChange={(e) => {
+                                            const name = e.target.value;
+                                            setSelectedClient(name);
+                                            const client = clients.find(c => c.nombre === name);
+                                            if (client) {
+                                                setFormAddress(client.direccion || '');
+                                                setFormPhone(client.telefono || '');
+                                                setFormEmail(client.email || '');
+                                            } else {
+                                                // If deselected or empty, clear? Or keep? Let's clear to avoid confusion
+                                                setFormAddress('');
+                                                setFormPhone('');
+                                                setFormEmail('');
+                                            }
+                                        }}
+                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 appearance-none transition-all"
+                                    >
                                         <option value="">Cita sin cliente vinculado</option>
                                         {clients.map((c, i) => (
                                             <option key={i} value={c.nombre}>{c.nombre}</option>
@@ -445,11 +514,47 @@ export default function CalendarioPage() {
                                 </div>
                             </div>
 
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                                        <span className="w-3 h-3 text-gold">📞</span> Teléfono
+                                    </label>
+                                    <input
+                                        name="phone"
+                                        type="tel"
+                                        value={formPhone}
+                                        onChange={(e) => setFormPhone(e.target.value)}
+                                        placeholder="+34 600 000 000"
+                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                                        <span className="w-3 h-3 text-gold">@</span> Email
+                                    </label>
+                                    <input
+                                        name="email"
+                                        type="email"
+                                        value={formEmail}
+                                        onChange={(e) => setFormEmail(e.target.value)}
+                                        placeholder="cliente@ejemplo.com"
+                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
+                                    />
+                                </div>
+                            </div>
+
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                     <MapPin className="w-3 h-3 text-gold" /> Ubicación Exacta
                                 </label>
-                                <input name="address" type="text" placeholder="Calle, Número, Ciudad" className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30" />
+                                <input
+                                    name="address"
+                                    type="text"
+                                    value={formAddress}
+                                    onChange={(e) => setFormAddress(e.target.value)}
+                                    placeholder="Calle, Número, Ciudad"
+                                    className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
+                                />
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
