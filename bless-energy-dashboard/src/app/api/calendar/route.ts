@@ -16,6 +16,23 @@ export async function GET() {
     }
 }
 
+// Función auxiliar para extraer fecha y hora SIN conversión de zona horaria
+// Entrada: "2026-02-03T10:00:00+01:00" o "2026-02-03T10:00:00"
+// Salida: { date: "2026-02-03", time: "10:00" }
+function extractRawDateTime(isoString: string) {
+    if (!isoString) return { date: '', time: '' };
+
+    // Si viene con T, partimos por ahí
+    if (isoString.includes('T')) {
+        const [datePart, timePart] = isoString.split('T');
+        // timePart puede ser "10:00:00+01:00" o "10:00:00.000Z"
+        // Cogemos solo los primeros 5 caracteres (HH:MM)
+        const time = timePart.substring(0, 5);
+        return { date: datePart, time };
+    }
+    return { date: isoString, time: '' };
+}
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();
@@ -37,13 +54,6 @@ export async function POST(request: Request) {
 
         // Send email confirmation via n8n if toggle is enabled
         console.log('[N8N DEBUG] Starting webhook process');
-        console.log('[N8N DEBUG] sendInvitation:', sendInvitation);
-        console.log('[N8N DEBUG] clientEmail:', clientEmail);
-        console.log('[N8N DEBUG] WEBHOOK_URL target:', WEBHOOK_URL);
-
-        // Check conditions individually for better debugging
-        if (!sendInvitation) console.log('[N8N DEBUG] Skipped: sendInvitation is false');
-        if (!clientEmail) console.log('[N8N DEBUG] Skipped: clientEmail is missing');
 
         if (sendInvitation && clientEmail && WEBHOOK_URL) {
             try {
@@ -55,12 +65,15 @@ export async function POST(request: Request) {
                     ? eventData.summary.split(' - ')[0]
                     : eventData.summary;
 
-                const startDate = new Date(eventData.start.dateTime);
                 const location = eventData.location || '';
                 const [address = '', city = ''] = location.split(',').map((s: string) => s.trim());
 
+                // FIX: Usar strings crudos directamente del input, sin pasar por Date()
+                const { date, time } = extractRawDateTime(eventData.start.dateTime);
+
+                console.log('[N8N DEBUG] Sending Raw Date/Time:', date, time);
+
                 // Call n8n webhook
-                console.log('[N8N DEBUG] Sending fetch request to N8N...');
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -69,12 +82,8 @@ export async function POST(request: Request) {
                         clientEmail: clientEmail,
                         clientPhone: clientPhone || '',
                         appointmentTitle,
-                        appointmentDate: startDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' }), // YYYY-MM-DD
-                        appointmentTime: startDate.toLocaleTimeString('es-ES', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            timeZone: 'Europe/Madrid' // Force Madrid timezone
-                        }),
+                        appointmentDate: date, // "2026-02-03" -> Directo
+                        appointmentTime: time, // "10:00" -> Directo
                         duration: clientDuration || '',
                         address,
                         city,
@@ -82,20 +91,16 @@ export async function POST(request: Request) {
                     })
                 });
 
-                if (response.ok) {
-                    console.log('[N8N] Email confirmation sent successfully. Status:', response.status);
-                } else {
-                    console.error('[N8N] Webhook response not OK:', await response.text());
-                }
+                if (response.ok) console.log('[N8N] Email confirmation sent successfully');
+                else console.error('[N8N] Webhook response not OK:', await response.text());
 
             } catch (webhookError) {
                 console.error('[N8N] Failed to send email confirmation via webhook:', webhookError);
-                // Don't fail the whole request if webhook fails
             }
         }
 
         // Notify Team Logic
-        console.log(`[TEAM NOTIFICATION] New Appointment Scheduled: ${eventData.summary} at ${eventData.start.dateTime}`);
+        console.log(`[TEAM NOTIFICATION] New Appointment Scheduled: ${eventData.summary}`);
 
         return NextResponse.json({ success: true, data: event });
     } catch (error: any) {
@@ -115,24 +120,18 @@ export async function PUT(request: Request) {
         const { eventId, sendInvitation, clientPhone, clientDuration, clientEmail, ...eventData } = body;
         const event = await updateEvent(eventId, eventData);
 
-        // Send email confirmation via n8n if toggle is enabled
-        console.log('[N8N UPDATE DEBUG] sendInvitation:', sendInvitation);
-        console.log('[N8N UPDATE DEBUG] clientEmail:', clientEmail);
-
         if (sendInvitation && clientEmail && WEBHOOK_URL) {
             try {
-                const clientName = eventData.summary.includes(' - ')
-                    ? eventData.summary.split(' - ')[1]
-                    : 'Cliente';
-                const appointmentTitle = eventData.summary.includes(' - ')
-                    ? eventData.summary.split(' - ')[0]
-                    : eventData.summary;
-
-                const startDate = new Date(eventData.start.dateTime);
+                const clientName = eventData.summary.includes(' - ') ? eventData.summary.split(' - ')[1] : 'Cliente';
+                const appointmentTitle = eventData.summary.includes(' - ') ? eventData.summary.split(' - ')[0] : eventData.summary;
                 const location = eventData.location || '';
                 const [address = '', city = ''] = location.split(',').map((s: string) => s.trim());
 
-                console.log('[N8N UPDATE] Sending webhook update...');
+                // FIX: Usar strings crudos
+                const { date, time } = extractRawDateTime(eventData.start.dateTime);
+
+                console.log('[N8N UPDATE] Sending Raw Date/Time:', date, time);
+
                 await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -141,12 +140,8 @@ export async function PUT(request: Request) {
                         clientEmail: clientEmail,
                         clientPhone: clientPhone || '',
                         appointmentTitle,
-                        appointmentDate: startDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' }), // YYYY-MM-DD
-                        appointmentTime: startDate.toLocaleTimeString('es-ES', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            timeZone: 'Europe/Madrid' // Force Madrid timezone
-                        }),
+                        appointmentDate: date,
+                        appointmentTime: time,
                         duration: clientDuration || '',
                         address,
                         city,
