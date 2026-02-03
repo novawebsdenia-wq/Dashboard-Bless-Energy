@@ -19,10 +19,13 @@ export const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID || 'primary';
 
 export async function listEvents() {
     try {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
         const response = await calendar.events.list({
             calendarId: CALENDAR_ID,
-            timeMin: new Date().toISOString(),
-            maxResults: 50,
+            timeMin: startOfMonth.toISOString(),
+            maxResults: 100,
             singleEvents: true,
             orderBy: 'startTime',
         });
