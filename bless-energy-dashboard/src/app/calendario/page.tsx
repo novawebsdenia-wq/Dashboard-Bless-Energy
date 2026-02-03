@@ -207,12 +207,19 @@ Población: ${city}
         setIsLoading(true);
         try {
             const method = editingEvent ? 'PUT' : 'POST';
+            // Helper to get Local ISO String (YYYY-MM-DDTHH:mm:ss) without converting to UTC
+            const toLocalISO = (d: Date) => {
+                const pad = (n: number) => n.toString().padStart(2, '0');
+                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+            };
+
             const payload: any = {
                 summary: fullTitle,
                 location: address,
                 description: fullDescription,
-                start: { dateTime: startDateTime.toISOString() },
-                end: { dateTime: endDateTime.toISOString() },
+                // Send raw local time so backend extracts "10:00" correctly
+                start: { dateTime: toLocalISO(startDateTime) },
+                end: { dateTime: toLocalISO(endDateTime) },
                 sendInvitation,
                 // NO incluir attendees en Google Calendar (causa errores con Service Accounts)
                 // attendees: formEmail ? [{ email: formEmail }] : [],
