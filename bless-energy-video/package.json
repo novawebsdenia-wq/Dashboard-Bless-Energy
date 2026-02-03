@@ -1,0 +1,22 @@
+{
+  "name": "bless-energy-video",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion render BlessEnergyVideo out/video.mp4",
+    "render": "remotion render BlessEnergyVideo out/video.mp4 --codec h264"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.414",
+    "@remotion/google-fonts": "4.0.414",
+    "@remotion/transitions": "4.0.414",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "4.0.414"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}

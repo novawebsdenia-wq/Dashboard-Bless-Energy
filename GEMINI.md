@@ -40,11 +40,13 @@ Piensa en este repositorio como una **fábrica automatizada de software**:
 |------------------|------------|---------------------|
 | **Factory OS** | Tu identidad y reglas | `GEMINI.md` (este archivo) |
 | **Blueprints** | Especificaciones de features | `.claude/PRPs/*.md` |
-| **Control Room** | El humano que aprueba | Tú preguntas, él valida |
+| **Control Room** | Interrogación Pre-Ejecución | `prompt-refiner` / Preguntas Críticas |
 | **Robot Arms** | Tus manos (editar código, DB) | Supabase MCP + Terminal |
 | **Eyes/Cameras** | Tu visión del producto | Playwright MCP |
+| **Marketing Department** | Pack de Redes Sociales | `social-content` (Scripts HVS) |
+| **Delivery Floor** | Entrega Premium al Cliente | `client-delivery` / `/delivery` |
 | **Quality Control** | Validación automática | Next.js MCP + typecheck |
-| **Assembly Line** | Proceso por fases | `bucle-agentico-blueprint.md` |
+| **Assembly Line** | Proceso Pro (Antes→Durante→Después) | `sistema-completo.md` |
 | **Neural Network** | Aprendizaje continuo | Auto-Blindaje |
 | **Asset Library** | Biblioteca de Activos | `.claude/` (Comandos, Skills, Agentes, Diseño) |
 
@@ -174,15 +176,16 @@ Ver `.claude/PRPs/prp-base.md` para el template completo.
 
 ---
 
-## 🔄 Bucle Agéntico (Assembly Line)
+## 🔄 Bucle Agéntico (The Full Engine)
 
-Ver `.claude/prompts/bucle-agentico-blueprint.md` para el proceso completo:
+Ver `.agent/workflows/sistema-completo.md` para el proceso de punta a punta:
 
-1. **Delimitar** → Dividir en FASES (sin subtareas)
-2. **Mapear** → Explorar contexto REAL antes de cada fase
-3. **Ejecutar** → Subtareas con MCPs según juicio
-4. **Auto-Blindaje** → Documentar errores
-5. **Transicionar** → Siguiente fase con contexto actualizado
+1.  **Delimitar (Fase 0)** → Interrogación inteligente con `prompt-refiner`.
+2.  **Mapear (Fase 1)** → Explorar contexto REAL antes de cada fase.
+3.  **Ejecutar (Fase 1-N)** → Subtareas con MCPs según juicio.
+4.  **Promocionar (Fase Post)** → Generar contenido para redes sociales (`social-content`).
+5.  **Entregar (Fase Final)** → Organizar documentación profesional (`client-delivery`).
+6.  **Auto-Blindaje** → Documentar errores y aprendizajes.
 
 ---
 
@@ -299,10 +302,15 @@ test('should calculate total with tax', () => {
 
 > Esta sección CRECE con cada error encontrado.
 
-### 2025-01-09: Usar npm run dev, no next dev
-- **Error**: Puerto hardcodeado causa conflictos
-- **Fix**: Siempre usar `npm run dev` (auto-detecta puerto)
-- **Aplicar en**: Todos los proyectos
+### 2026-02-03: Contexto de Instagram para NotebookLM
+- **Regla**: Antes de cada consulta a NotebookLM para estrategias o contenido, ES OBLIGATORIO leer `Contexto_NovawebsIA_Instagram.md`.
+- **Acción**: Adaptar todas las respuestas de NotebookLM al contexto de NovawebsIA (SaaS, España, Reels Remotion, etc.).
+- **Protocolo**: Si falta información, preguntar. Si no, decidir y ejecutar.
+
+### 2026-02-03: Verificación de Deploy en Vercel
+- **Regla**: Cuando se solicite un cambio en cualquier aplicación, ASEGURARSE de que se hace deploy en Vercel.
+- **Acción**: No dar por finalizada la acción hasta verificar que el deploy se haya completado o iniciado correctamente.
+- **Protocolo**: Verificar estado de deploy tras push o forzar deploy manual si es necesario.
 
 ---
 

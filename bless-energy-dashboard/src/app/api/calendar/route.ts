@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { sendInvitation, ...eventData } = body;
+        const { sendInvitation, clientPhone, clientDuration, ...eventData } = body;
 
         // Add default reminders if not present
         if (!eventData.reminders) {
@@ -31,6 +31,45 @@ export async function POST(request: Request) {
         }
 
         const event = await createEvent(eventData, sendInvitation);
+
+        // Send email confirmation via n8n if toggle is enabled
+        if (sendInvitation && eventData.attendees?.[0]?.email && process.env.N8N_WEBHOOK_URL) {
+            try {
+                // Extract client data from event
+                const clientName = eventData.summary.includes(' - ')
+                    ? eventData.summary.split(' - ')[1]
+                    : 'Cliente';
+                const appointmentTitle = eventData.summary.includes(' - ')
+                    ? eventData.summary.split(' - ')[0]
+                    : eventData.summary;
+
+                const startDate = new Date(eventData.start.dateTime);
+                const location = eventData.location || '';
+                const [address = '', city = ''] = location.split(',').map((s: string) => s.trim());
+
+                // Call n8n webhook
+                await fetch(process.env.N8N_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientName,
+                        clientEmail: eventData.attendees[0].email,
+                        clientPhone: clientPhone || '',
+                        appointmentTitle,
+                        appointmentDate: startDate.toISOString().split('T')[0],
+                        appointmentTime: startDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+                        duration: clientDuration || '',
+                        address,
+                        city,
+                        action: 'created'
+                    })
+                });
+                console.log('[N8N] Email confirmation sent successfully');
+            } catch (webhookError) {
+                console.error('[N8N] Failed to send email confirmation:', webhookError);
+                // Don't fail the whole request if webhook fails
+            }
+        }
 
         // Notify Team Logic
         console.log(`[TEAM NOTIFICATION] New Appointment Scheduled: ${eventData.summary} at ${eventData.start.dateTime}`);
@@ -50,8 +89,45 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json();
-        const { eventId, sendInvitation, ...eventData } = body;
+        const { eventId, sendInvitation, clientPhone, clientDuration, ...eventData } = body;
         const event = await updateEvent(eventId, eventData, sendInvitation);
+
+        // Send email confirmation via n8n if toggle is enabled
+        if (sendInvitation && eventData.attendees?.[0]?.email && process.env.N8N_WEBHOOK_URL) {
+            try {
+                const clientName = eventData.summary.includes(' - ')
+                    ? eventData.summary.split(' - ')[1]
+                    : 'Cliente';
+                const appointmentTitle = eventData.summary.includes(' - ')
+                    ? eventData.summary.split(' - ')[0]
+                    : eventData.summary;
+
+                const startDate = new Date(eventData.start.dateTime);
+                const location = eventData.location || '';
+                const [address = '', city = ''] = location.split(',').map((s: string) => s.trim());
+
+                await fetch(process.env.N8N_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientName,
+                        clientEmail: eventData.attendees[0].email,
+                        clientPhone: clientPhone || '',
+                        appointmentTitle,
+                        appointmentDate: startDate.toISOString().split('T')[0],
+                        appointmentTime: startDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+                        duration: clientDuration || '',
+                        address,
+                        city,
+                        action: 'updated'
+                    })
+                });
+                console.log('[N8N] Email update confirmation sent successfully');
+            } catch (webhookError) {
+                console.error('[N8N] Failed to send email update:', webhookError);
+            }
+        }
+
         return NextResponse.json({ success: true, data: event });
     } catch (error: any) {
         return NextResponse.json(

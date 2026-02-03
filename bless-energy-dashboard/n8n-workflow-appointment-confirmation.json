@@ -1,0 +1,105 @@
+{
+  "name": "Confirmación de Citas - Bless Energy",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "appointment-confirmation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "appointment-confirmation"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatear datos para el email\nconst data = $input.item.json;\n\n// Formatear fecha en español\nconst dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };\nconst formattedDate = new Date(data.appointmentDate).toLocaleDateString('es-ES', dateOptions);\n\n// Determinar saludo según la acción\nconst greeting = data.action === 'created' ? 'confirmamos' : 'actualizamos';\nconst actionText = data.action === 'created' ? 'programada' : 'actualizada';\n\nreturn {\n  clientName: data.clientName,\n  clientEmail: data.clientEmail,\n  clientPhone: data.clientPhone,\n  appointmentTitle: data.appointmentTitle,\n  appointmentDate: formattedDate,\n  appointmentTime: data.appointmentTime,\n  duration: data.duration,\n  address: data.address,\n  city: data.city,\n  greeting: greeting,\n  actionText: actionText,\n  fullAddress: `${data.address}, ${data.city}`\n};"
+      },
+      "id": "format-data",
+      "name": "Formatear Datos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "info@blessenergy.es",
+        "toEmail": "={{ $json.clientEmail }}",
+        "subject": "✅ Cita {{ $json.actionText }} - {{ $json.appointmentTitle }}",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <style>\n    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }\n    .container { max-width: 600px; margin: 40px auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }\n    .header { background: linear-gradient(135deg, #D4AF37 0%, #C5A028 100%); padding: 40px 30px; text-align: center; }\n    .header h1 { color: white; margin: 0; font-size: 28px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; }\n    .header p { color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 14px; }\n    .content { padding: 40px 30px; }\n    .greeting { font-size: 18px; color: #333; margin-bottom: 20px; }\n    .info-box { background: #f9f9f9; border-left: 4px solid #D4AF37; padding: 20px; margin: 20px 0; border-radius: 8px; }\n    .info-row { display: flex; margin-bottom: 15px; align-items: flex-start; }\n    .info-row:last-child { margin-bottom: 0; }\n    .info-icon { width: 24px; height: 24px; margin-right: 12px; flex-shrink: 0; }\n    .info-label { font-weight: 700; color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }\n    .info-value { color: #333; font-size: 16px; font-weight: 600; }\n    .footer { background: #f9f9f9; padding: 30px; text-align: center; border-top: 1px solid #eee; }\n    .footer p { color: #666; font-size: 12px; margin: 5px 0; }\n    .cta-button { display: inline-block; background: #D4AF37; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 700; margin: 20px 0; text-transform: uppercase; letter-spacing: 1px; font-size: 14px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Bless Energy</h1>\n      <p>Energía Solar · Climatización · Reformas</p>\n    </div>\n    \n    <div class=\"content\">\n      <p class=\"greeting\">Hola <strong>{{ $json.clientName }}</strong>,</p>\n      <p>Le {{ $json.greeting }} su cita para <strong>{{ $json.appointmentTitle }}</strong>.</p>\n      \n      <div class=\"info-box\">\n        <div class=\"info-row\">\n          <div>\n            <div class=\"info-label\">📅 Fecha</div>\n            <div class=\"info-value\">{{ $json.appointmentDate }}</div>\n          </div>\n        </div>\n        \n        <div class=\"info-row\">\n          <div>\n            <div class=\"info-label\">🕐 Hora de Inicio</div>\n            <div class=\"info-value\">{{ $json.appointmentTime }}</div>\n          </div>\n        </div>\n        \n        <div class=\"info-row\">\n          <div>\n            <div class=\"info-label\">⏱️ Duración Estimada</div>\n            <div class=\"info-value\">{{ $json.duration }}</div>\n          </div>\n        </div>\n        \n        <div class=\"info-row\">\n          <div>\n            <div class=\"info-label\">📍 Ubicación</div>\n            <div class=\"info-value\">{{ $json.fullAddress }}</div>\n          </div>\n        </div>\n        \n        <div class=\"info-row\">\n          <div>\n            <div class=\"info-label\">📞 Su Teléfono de Contacto</div>\n            <div class=\"info-value\">{{ $json.clientPhone }}</div>\n          </div>\n        </div>\n      </div>\n      \n      <p style=\"margin-top: 30px; color: #666; font-size: 14px;\">\n        Si necesita modificar o cancelar esta cita, por favor contáctenos lo antes posible.\n      </p>\n      \n      <center>\n        <a href=\"tel:+34641743675\" class=\"cta-button\">Llamar a Bless Energy</a>\n      </center>\n    </div>\n    \n    <div class=\"footer\">\n      <p><strong>Bless Energy</strong></p>\n      <p>📧 info@blessenergy.es | 📱 +34 641 74 36 75</p>\n      <p style=\"margin-top: 15px; font-size: 11px; color: #999;\">\n        Este es un email automático. Por favor, no responda a este mensaje.\n      </p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Enviar Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [650, 300],
+      "credentials": {
+        "smtp": {
+          "id": "1",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"message\": \"Email enviado correctamente\", \"to\": $json.clientEmail } }}"
+      },
+      "id": "webhook-response",
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Formatear Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Datos": {
+      "main": [
+        [
+          {
+            "node": "Enviar Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Email": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-02-03T15:22:00.000Z",
+  "versionId": "1"
+}
