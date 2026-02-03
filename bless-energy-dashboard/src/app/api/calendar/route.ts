@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { listEvents, createEvent, updateEvent, deleteEvent } from '@/lib/google-calendar';
 
+// Define Webhook URL with fallback for production safety
+const WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'https://bless-energy-n8n.pdlbif.easypanel.host/webhook/appointment-confirmation';
+
 export async function GET() {
     try {
         const events = await listEvents();
@@ -33,11 +36,16 @@ export async function POST(request: Request) {
         const event = await createEvent(eventData);
 
         // Send email confirmation via n8n if toggle is enabled
+        console.log('[N8N DEBUG] Starting webhook process');
         console.log('[N8N DEBUG] sendInvitation:', sendInvitation);
         console.log('[N8N DEBUG] clientEmail:', clientEmail);
-        console.log('[N8N DEBUG] N8N_WEBHOOK_URL:', process.env.N8N_WEBHOOK_URL ? 'SET' : 'NOT SET');
+        console.log('[N8N DEBUG] WEBHOOK_URL target:', WEBHOOK_URL);
 
-        if (sendInvitation && clientEmail && process.env.N8N_WEBHOOK_URL) {
+        // Check conditions individually for better debugging
+        if (!sendInvitation) console.log('[N8N DEBUG] Skipped: sendInvitation is false');
+        if (!clientEmail) console.log('[N8N DEBUG] Skipped: clientEmail is missing');
+
+        if (sendInvitation && clientEmail && WEBHOOK_URL) {
             try {
                 // Extract client data from event
                 const clientName = eventData.summary.includes(' - ')
@@ -52,7 +60,8 @@ export async function POST(request: Request) {
                 const [address = '', city = ''] = location.split(',').map((s: string) => s.trim());
 
                 // Call n8n webhook
-                await fetch(process.env.N8N_WEBHOOK_URL, {
+                console.log('[N8N DEBUG] Sending fetch request to N8N...');
+                const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -68,9 +77,15 @@ export async function POST(request: Request) {
                         action: 'created'
                     })
                 });
-                console.log('[N8N] Email confirmation sent successfully');
+
+                if (response.ok) {
+                    console.log('[N8N] Email confirmation sent successfully. Status:', response.status);
+                } else {
+                    console.error('[N8N] Webhook response not OK:', await response.text());
+                }
+
             } catch (webhookError) {
-                console.error('[N8N] Failed to send email confirmation:', webhookError);
+                console.error('[N8N] Failed to send email confirmation via webhook:', webhookError);
                 // Don't fail the whole request if webhook fails
             }
         }
@@ -97,7 +112,10 @@ export async function PUT(request: Request) {
         const event = await updateEvent(eventId, eventData);
 
         // Send email confirmation via n8n if toggle is enabled
-        if (sendInvitation && clientEmail && process.env.N8N_WEBHOOK_URL) {
+        console.log('[N8N UPDATE DEBUG] sendInvitation:', sendInvitation);
+        console.log('[N8N UPDATE DEBUG] clientEmail:', clientEmail);
+
+        if (sendInvitation && clientEmail && WEBHOOK_URL) {
             try {
                 const clientName = eventData.summary.includes(' - ')
                     ? eventData.summary.split(' - ')[1]
@@ -110,7 +128,8 @@ export async function PUT(request: Request) {
                 const location = eventData.location || '';
                 const [address = '', city = ''] = location.split(',').map((s: string) => s.trim());
 
-                await fetch(process.env.N8N_WEBHOOK_URL, {
+                console.log('[N8N UPDATE] Sending webhook update...');
+                await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
