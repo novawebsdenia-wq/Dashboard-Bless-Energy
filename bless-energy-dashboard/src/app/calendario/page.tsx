@@ -156,8 +156,8 @@ export default function CalendarioPage() {
                     >
                         <div className="flex justify-between items-start mb-1">
                             <span className={`text-xs font-black ${isToday(day)
-                                    ? 'w-6 h-6 flex items-center justify-center bg-gold text-black rounded-full'
-                                    : isSameDay(day, selectedDate) ? 'text-gold' : 'text-gray-500'
+                                ? 'w-6 h-6 flex items-center justify-center bg-gold text-black rounded-full'
+                                : isSameDay(day, selectedDate) ? 'text-gold' : 'text-gray-500'
                                 }`}>
                                 {format(day, 'd')}
                             </span>
@@ -199,6 +199,58 @@ export default function CalendarioPage() {
         const eventDate = event.start.dateTime ? parseISO(event.start.dateTime) : (event.start.date ? parseISO(event.start.date) : null);
         return eventDate && isSameDay(eventDate, selectedDate);
     });
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const title = formData.get('title') as string;
+        const time = formData.get('time') as string;
+        const duration = formData.get('duration') as string;
+
+        // Calculate end time
+        const startDateTime = new Date(selectedDate);
+        const [hours, minutes] = time.split(':');
+        startDateTime.setHours(parseInt(hours), parseInt(minutes));
+
+        const endDateTime = new Date(startDateTime);
+        if (duration === '1 hora') endDateTime.setHours(endDateTime.getHours() + 1);
+        else if (duration === '2 horas') endDateTime.setHours(endDateTime.getHours() + 2);
+        else endDateTime.setMinutes(endDateTime.getMinutes() + 30);
+
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/calendar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    summary: title,
+                    start: { dateTime: startDateTime.toISOString() },
+                    end: { dateTime: endDateTime.toISOString() }
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                toast({
+                    type: 'success',
+                    title: 'Cita guardada',
+                    message: 'La cita se ha sincronizado correctamente con Google Calendar.'
+                });
+                setIsAddModalOpen(false);
+                fetchEvents();
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            toast({
+                type: 'error',
+                title: 'Error al guardar',
+                message: 'No se pudo crear la cita. Revisa la consola para más detalles.'
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <div className="flex flex-col h-screen bg-gray-50 dark:bg-black overflow-hidden relative">
@@ -276,7 +328,7 @@ export default function CalendarioPage() {
                 </div>
             </main>
 
-            {/* Basic Add Modal (for now) */}
+            {/* Basic Add Modal */}
             {isAddModalOpen && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-black w-full max-w-md rounded-3xl border border-gray-200 dark:border-gold/30 shadow-2xl p-8 animate-in zoom-in-95 duration-200">
@@ -287,27 +339,27 @@ export default function CalendarioPage() {
                             </button>
                         </div>
 
-                        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); toast({ type: 'info', title: 'Funcionalidad en desarrollo', message: 'Estamos terminando la conexión de escritura con Google Calendar.' }); setIsAddModalOpen(false); }}>
+                        <form className="space-y-4" onSubmit={handleSubmit}>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Título</label>
-                                <input type="text" required placeholder="Ej: Visita Instalación Sol" className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/10 rounded-2xl text-sm font-bold focus:outline-none focus:border-gold" />
+                                <input name="title" type="text" required placeholder="Ej: Visita Instalación Sol" className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/10 rounded-2xl text-sm font-bold focus:outline-none focus:border-gold" />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Hora Inicio</label>
-                                    <input type="time" required className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/10 rounded-2xl text-sm font-bold focus:outline-none focus:border-gold" />
+                                    <input name="time" type="time" required className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/10 rounded-2xl text-sm font-bold focus:outline-none focus:border-gold" />
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Duración</label>
-                                    <select className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/10 rounded-2xl text-sm font-bold focus:outline-none focus:border-gold">
-                                        <option>30 min</option>
-                                        <option>1 hora</option>
-                                        <option>2 horas</option>
+                                    <select name="duration" className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/10 rounded-2xl text-sm font-bold focus:outline-none focus:border-gold">
+                                        <option value="30 min">30 min</option>
+                                        <option value="1 hora">1 hora</option>
+                                        <option value="2 horas">2 horas</option>
                                     </select>
                                 </div>
                             </div>
-                            <button type="submit" className="w-full py-4 bg-gold text-black text-[10px] font-black uppercase tracking-widest rounded-2xl mt-4">
-                                Confirmar Cita
+                            <button type="submit" disabled={isLoading} className="w-full py-4 bg-gold text-black text-[10px] font-black uppercase tracking-widest rounded-2xl mt-4 shadow-lg shadow-gold/20 hover:scale-[1.02] active:scale-95 transition-all">
+                                {isLoading ? 'Sincronizando...' : 'Confirmar Cita'}
                             </button>
                         </form>
                     </div>

@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 
 export interface Notification {
   id: string;
-  type: 'lead' | 'cliente' | 'email' | 'info';
+  type: 'lead' | 'cliente' | 'email' | 'info' | 'calendar';
   title: string;
   message: string;
   source: string;
@@ -129,13 +129,54 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         // Get stored read notifications
         const storedRead: string[] = JSON.parse(localStorage.getItem('readNotifications') || '[]');
 
+        // Fetch Calendar events
+        let calendarNotifications: Notification[] = [];
+        try {
+          const calResponse = await fetch('/api/calendar');
+          const calData = await calResponse.json();
+          if (calData.success && calData.data) {
+            const now = new Date();
+            const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+
+            calendarNotifications = calData.data.map((event: any) => {
+              const startStr = event.start.dateTime || event.start.date;
+              if (!startStr) return null;
+              const startTime = new Date(startStr);
+
+              const id = `cal-${event.id}`;
+
+              // If event is starting in less than 1 hour and was never notified, show push
+              const hasBeenNotified = localStorage.getItem(`notified-${id}`);
+              if (startTime > now && startTime < oneHourFromNow && !hasBeenNotified) {
+                showPushNotification(
+                  `Cita Próxima: ${event.summary}`,
+                  `Empieza a las ${startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                );
+                localStorage.setItem(`notified-${id}`, 'true');
+              }
+
+              return {
+                id,
+                type: 'calendar',
+                title: 'Cita en Calendario',
+                message: event.summary,
+                source: 'Google Calendar',
+                timestamp: startStr,
+                read: storedRead.includes(id),
+              };
+            }).filter(Boolean);
+          }
+        } catch (calErr) {
+          console.error('Error fetching calendar notifications:', calErr);
+        }
+
         // Create notifications from recent activity
-        const newNotifications: Notification[] = recentActivity.map((activity: { source: string; name: string; date: string; status: string }) => {
+        const activityNotifications: Notification[] = recentActivity.map((activity: { source: string; name: string; date: string; status: string }) => {
           // Create a stable ID based on source + name
           const id = `${activity.source}-${activity.name}`.replace(/[^a-zA-Z0-9]/g, '-');
 
           let title = 'Nueva entrada';
-          let type: 'lead' | 'cliente' | 'email' = 'lead';
+          let type: 'lead' | 'cliente' | 'email' | 'calendar' = 'lead';
 
           if (activity.source === 'Calculadora') {
             title = 'Nuevo lead - Calculadora';
@@ -153,7 +194,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
           return {
             id,
-            type,
+            type: (type as any),
             title,
             message: activity.name || 'Sin nombre',
             source: activity.source,
@@ -162,7 +203,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           };
         });
 
-        setNotifications(newNotifications);
+        // Merge and sort by timestamp (newest first)
+        const combined = [...activityNotifications, ...calendarNotifications].sort((a, b) => {
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        });
+
+        setNotifications(combined);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
