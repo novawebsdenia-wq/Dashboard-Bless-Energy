@@ -15,7 +15,7 @@ const auth = new google.auth.GoogleAuth({
 
 const calendar = google.calendar({ version: 'v3', auth });
 
-export const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID || 'primary';
+export const CALENDAR_ID = (process.env.GOOGLE_CALENDAR_ID || 'primary').trim();
 
 export async function listEvents() {
     try {
