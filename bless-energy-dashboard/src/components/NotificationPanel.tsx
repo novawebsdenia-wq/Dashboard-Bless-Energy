@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, X, Check, FileText, Users, Mail, BellRing, BellOff } from 'lucide-react';
+import { Bell, X, Check, FileText, Users, Mail, BellRing, BellOff, Calendar as CalendarIcon } from 'lucide-react';
 import { Notification } from '@/context/NotificationContext';
 
 interface NotificationPanelProps {
@@ -14,18 +14,20 @@ interface NotificationPanelProps {
   onTogglePush?: () => void;
 }
 
-const iconMap = {
+const iconMap: Record<string, any> = {
   lead: FileText,
   cliente: Users,
   email: Mail,
   info: Bell,
+  calendar: CalendarIcon,
 };
 
-const colorMap = {
+const colorMap: Record<string, string> = {
   lead: 'text-blue-500 bg-blue-500/20',
   cliente: 'text-green-500 bg-green-500/20',
   email: 'text-gold bg-gold/20',
   info: 'text-gray-500 bg-gray-500/20',
+  calendar: 'text-purple-500 bg-purple-500/20',
 };
 
 export default function NotificationPanel({
@@ -95,14 +97,12 @@ export default function NotificationPanel({
               </div>
               <button
                 onClick={onTogglePush}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  pushEnabled ? 'bg-gold' : 'bg-gray-300 dark:bg-gray-600'
-                }`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${pushEnabled ? 'bg-gold' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    pushEnabled ? 'translate-x-6' : 'translate-x-1'
-                  }`}
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${pushEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
                 />
               </button>
             </div>
@@ -142,9 +142,8 @@ export default function NotificationPanel({
                 return (
                   <div
                     key={notification.id}
-                    className={`p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${
-                      !notification.read ? 'bg-gold/5' : ''
-                    }`}
+                    className={`p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${!notification.read ? 'bg-gold/5' : ''
+                      }`}
                   >
                     <div className="flex gap-3">
                       <div
