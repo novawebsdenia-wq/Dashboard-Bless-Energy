@@ -14,7 +14,8 @@ import {
     User,
     Navigation,
     FileText,
-    CalendarDays
+    CalendarDays,
+    Trash2
 } from 'lucide-react';
 import {
     format,
@@ -58,6 +59,7 @@ export default function CalendarioPage() {
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const { toast } = useToast();
@@ -72,12 +74,10 @@ export default function CalendarioPage() {
                 setEvents(calData.data);
             }
 
-            // Fetch Clients for selector from the 'clientes' sheet
+            // Fetch Clients
             const clientRes = await fetch('/api/sheets?sheet=clientes');
             const clientData = await clientRes.json();
             if (clientData.success && clientData.data) {
-                // clientData.data mapping from api/sheets/route.ts returns { headers, rows }
-                // where rows is an array of objects
                 const clientList = clientData.data.rows.map((row: any) => ({
                     nombre: row['Nombre'] || row['nombre'] || row['TITLE'] || Object.values(row)[2] || 'S/N'
                 })).filter((c: any) => c.nombre !== 'S/N');
@@ -96,6 +96,36 @@ export default function CalendarioPage() {
 
     const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
     const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+
+    const handleDelete = async (eventId: string) => {
+        if (!confirm('¿Estás seguro de que quieres eliminar esta cita?')) return;
+
+        setIsDeleting(eventId);
+        try {
+            const response = await fetch(`/api/calendar?eventId=${eventId}`, {
+                method: 'DELETE',
+            });
+            const data = await response.json();
+            if (data.success) {
+                toast({
+                    type: 'success',
+                    title: 'Cita eliminada',
+                    message: 'La cita se ha borrado correctamente de Google Calendar.'
+                });
+                fetchData();
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error: any) {
+            toast({
+                type: 'error',
+                title: 'Error al eliminar',
+                message: error.message || 'No se pudo eliminar la cita.'
+            });
+        } finally {
+            setIsDeleting(null);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -166,7 +196,7 @@ export default function CalendarioPage() {
                     <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white capitalize tracking-tighter">
                         {format(currentMonth, 'MMMM yyyy', { locale: es })}
                     </h2>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Gestión de Agenda</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mt-1">Sincronización Cloud</p>
                 </div>
             </div>
             <div className="flex items-center gap-2 bg-white dark:bg-white/5 p-1.5 rounded-2xl border border-gray-100 dark:border-gold/10 shadow-sm w-full sm:w-auto">
@@ -282,75 +312,78 @@ export default function CalendarioPage() {
     return (
         <div className="flex flex-col h-screen bg-gray-50 dark:bg-[#050505] overflow-hidden">
             <Header
-                title="Calendario Profesional"
-                subtitle="Sincronización con Google & Clientes"
+                title="Calendario de Citas"
+                subtitle="Sincronización con Google Cloud & Clientes"
                 onRefresh={fetchData}
                 isLoading={isLoading}
             />
 
             <main className="flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar">
                 <div className="max-w-[1600px] mx-auto flex flex-col xl:flex-row gap-8">
-                    {/* Calendar Main Grid */}
-                    <div className="flex-1 min-w-0">
-                        {renderHeader()}
-                        {renderCells()}
-                    </div>
-
-                    {/* Sidebar Agenda */}
-                    <div className="w-full xl:w-[400px] shrink-0 border-t xl:border-t-0 xl:border-l border-gray-200 dark:border-gold/10 pt-8 xl:pt-0 xl:pl-8">
-                        <div className="bg-white dark:bg-black p-8 rounded-[3rem] border border-gray-200 dark:border-gold/20 shadow-2xl sticky top-0 bg-opacity-80 backdrop-blur-xl">
-                            <div className="flex justify-between items-start mb-10">
+                    {/* Sidebar Agenda - TOP on mobile, RIGHT on Desktop */}
+                    <div className="w-full xl:w-[400px] shrink-0 border-b xl:border-b-0 xl:border-l border-gray-200 dark:border-gold/10 pb-8 xl:pb-0 xl:pl-8 order-first xl:order-last">
+                        <div className="bg-white dark:bg-black p-6 sm:p-8 rounded-[3rem] border border-gray-200 dark:border-gold/20 shadow-2xl sticky top-0 bg-opacity-80 backdrop-blur-xl">
+                            <div className="flex justify-between items-start mb-8 sm:mb-10">
                                 <div>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold mb-3 flex items-center gap-2">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold mb-2 flex items-center gap-2">
                                         <span className="w-2 h-2 bg-gold rounded-full animate-ping"></span>
                                         Día Seleccionado
                                     </p>
-                                    <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">
+                                    <h3 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tighter">
                                         {format(selectedDate, "d 'de' MMMM", { locale: es })}
                                     </h3>
                                 </div>
                                 <button
                                     onClick={() => setIsAddModalOpen(true)}
-                                    className="p-5 bg-gold text-black rounded-2xl shadow-xl shadow-gold/20 hover:scale-110 active:scale-95 transition-all border-none"
+                                    className="p-4 sm:p-5 bg-gold text-black rounded-2xl shadow-xl shadow-gold/20 hover:scale-110 active:scale-95 transition-all border-none"
                                 >
-                                    <Plus className="w-7 h-7" />
+                                    <Plus className="w-6 h-6 sm:w-7 sm:h-7" />
                                 </button>
                             </div>
 
-                            <div className="space-y-6 max-h-[400px] sm:max-h-[600px] overflow-y-auto custom-scrollbar pr-3">
+                            <div className="space-y-4 max-h-[300px] sm:max-h-[600px] overflow-y-auto custom-scrollbar pr-1">
                                 {selectedDayEvents.length === 0 ? (
-                                    <div className="py-24 text-center">
-                                        <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border-2 border-dashed border-gray-100 dark:border-gold/10">
-                                            <CalendarIcon className="w-10 h-10 text-gray-300" />
+                                    <div className="py-16 sm:py-24 text-center">
+                                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-50 dark:bg-white/5 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border-2 border-dashed border-gray-100 dark:border-gold/10">
+                                            <CalendarIcon className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
                                         </div>
                                         <p className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Cero compromisos</p>
                                     </div>
                                 ) : (
                                     selectedDayEvents.map(event => (
-                                        <div key={event.id} className="group p-6 bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-gold/10 rounded-[2rem] hover:border-gold/40 hover:bg-gold/5 transition-all duration-300">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <h4 className="font-black text-gray-900 dark:text-white text-base leading-tight group-hover:text-gold transition-colors pr-4">
+                                        <div key={event.id} className="group p-5 sm:p-6 bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-gold/10 rounded-[2rem] hover:border-gold/40 hover:bg-gold/5 transition-all duration-300 relative">
+                                            <div className="flex justify-between items-start mb-4 pr-10">
+                                                <h4 className="font-black text-gray-900 dark:text-white text-sm sm:text-base leading-tight group-hover:text-gold transition-colors">
                                                     {event.summary}
                                                 </h4>
-                                                <div className="px-2 py-1 bg-gold/20 rounded-lg text-[9px] font-black text-gold uppercase tracking-widest">
-                                                    {event.start.dateTime
-                                                        ? format(parseISO(event.start.dateTime), 'HH:mm')
-                                                        : 'Todo el día'}
+                                                <div className="absolute top-6 right-6 flex items-center gap-2">
+                                                    <div className="px-2 py-1 bg-gold/20 rounded-lg text-[9px] font-black text-gold uppercase tracking-widest">
+                                                        {event.start.dateTime
+                                                            ? format(parseISO(event.start.dateTime), 'HH:mm')
+                                                            : 'Todo el día'}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleDelete(event.id)}
+                                                        disabled={isDeleting === event.id}
+                                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                                                    >
+                                                        <Trash2 className={`w-4 h-4 ${isDeleting === event.id ? 'animate-spin' : ''}`} />
+                                                    </button>
                                                 </div>
                                             </div>
                                             <div className="space-y-3">
                                                 {event.location && (
-                                                    <div className="flex items-center gap-3 text-[11px] text-gray-500 dark:text-gray-400 font-bold">
-                                                        <div className="w-8 h-8 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/10">
-                                                            <MapPin className="w-4 h-4 text-gold" />
+                                                    <div className="flex items-center gap-3 text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-bold">
+                                                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/10">
+                                                            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-gold" />
                                                         </div>
                                                         <span className="truncate">{event.location}</span>
                                                     </div>
                                                 )}
                                                 {event.description && (
-                                                    <div className="flex items-start gap-3 text-[11px] text-gray-500 dark:text-gray-400 font-medium pt-3 border-t border-gray-100 dark:border-gold/5 mt-3">
-                                                        <div className="w-8 h-8 rounded-xl bg-gold/10 flex items-center justify-center mt-1 border border-gold/10 shrink-0">
-                                                            <FileText className="w-4 h-4 text-gold" />
+                                                    <div className="flex items-start gap-3 text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-medium pt-3 border-t border-gray-100 dark:border-gold/5 mt-3">
+                                                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gold/10 flex items-center justify-center mt-1 border border-gold/10 shrink-0">
+                                                            <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-gold" />
                                                         </div>
                                                         <p className="leading-relaxed opacity-80">{event.description}</p>
                                                     </div>
@@ -362,6 +395,12 @@ export default function CalendarioPage() {
                             </div>
                         </div>
                     </div>
+
+                    {/* Calendar Main Grid */}
+                    <div className="flex-1 min-w-0">
+                        {renderHeader()}
+                        {renderCells()}
+                    </div>
                 </div>
             </main>
 
@@ -369,32 +408,32 @@ export default function CalendarioPage() {
             {isAddModalOpen && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-2xl z-50 flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-[#080808] w-full max-w-xl rounded-[3.5rem] border border-gray-200 dark:border-gold/20 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
-                        <div className="p-10 border-b border-gray-100 dark:border-gold/10 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
+                        <div className="p-8 sm:p-10 border-b border-gray-100 dark:border-gold/10 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
                             <div>
-                                <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Nueva Cita</h3>
+                                <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Nueva Cita</h3>
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-2 flex items-center gap-2">
                                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                    Conexión Google Calendar activa
+                                    Conexión Cloud Activa
                                 </p>
                             </div>
-                            <button onClick={() => setIsAddModalOpen(false)} className="p-4 hover:bg-gray-200 dark:hover:bg-white/10 rounded-2xl transition-all">
-                                <X className="w-7 h-7 text-gray-400" />
+                            <button onClick={() => setIsAddModalOpen(false)} className="p-3 sm:p-4 hover:bg-gray-200 dark:hover:bg-white/10 rounded-2xl transition-all">
+                                <X className="w-6 h-6 sm:w-7 sm:h-7 text-gray-400" />
                             </button>
                         </div>
 
-                        <form className="p-10 space-y-6" onSubmit={handleSubmit}>
+                        <form className="p-8 sm:p-10 space-y-6" onSubmit={handleSubmit}>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                         <AlignLeft className="w-3 h-3 text-gold" /> Título de la Cita
                                     </label>
-                                    <input name="title" type="text" required placeholder="Ej: Visita Instalación" className="w-full p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30" />
+                                    <input name="title" type="text" required placeholder="Ej: Visita Instalación" className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30" />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                         <User className="w-3 h-3 text-gold" /> Seleccionar Cliente
                                     </label>
-                                    <select name="client" className="w-full p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 appearance-none transition-all">
+                                    <select name="client" className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 appearance-none transition-all">
                                         <option value="">Cita sin cliente vinculado</option>
                                         {clients.map((c, i) => (
                                             <option key={i} value={c.nombre}>{c.nombre}</option>
@@ -407,7 +446,7 @@ export default function CalendarioPage() {
                                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                     <MapPin className="w-3 h-3 text-gold" /> Ubicación Exacta
                                 </label>
-                                <input name="address" type="text" placeholder="Calle, Número, Ciudad" className="w-full p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30" />
+                                <input name="address" type="text" placeholder="Calle, Número, Ciudad" className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30" />
                             </div>
 
                             <div className="grid grid-cols-2 gap-6">
@@ -415,13 +454,13 @@ export default function CalendarioPage() {
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                         <Clock className="w-3 h-3 text-gold" /> Hora de Inicio
                                     </label>
-                                    <input name="time" type="time" required className="w-full p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all" />
+                                    <input name="time" type="time" required className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all" />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                         <Clock className="w-3 h-3 text-gold" /> Duración Estimada
                                     </label>
-                                    <select name="duration" className="w-full p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 appearance-none transition-all">
+                                    <select name="duration" className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 appearance-none transition-all">
                                         <option value="30 min">Relámpago (30 min)</option>
                                         <option value="1 hora">Estándar (1 hora)</option>
                                         <option value="2 horas">Extendida (2 horas)</option>
@@ -434,10 +473,10 @@ export default function CalendarioPage() {
                                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                     <FileText className="w-3 h-3 text-gold" /> Detalles y Notas
                                 </label>
-                                <textarea name="notes" placeholder="Información crítica para esta cita..." className="w-full p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all min-h-[120px] resize-none placeholder:opacity-30" />
+                                <textarea name="notes" placeholder="Información crítica para esta cita..." className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all min-h-[100px] resize-none placeholder:opacity-30" />
                             </div>
 
-                            <button type="submit" disabled={isLoading} className="w-full py-6 bg-gradient-to-br from-gold via-gold to-gold-dark text-black text-[11px] font-black uppercase tracking-[0.4em] rounded-2xl shadow-2xl shadow-gold/30 hover:shadow-gold/50 hover:scale-[1.01] active:scale-95 transition-all duration-300 disabled:opacity-50">
+                            <button type="submit" disabled={isLoading} className="w-full py-5 sm:py-6 bg-gradient-to-br from-gold via-gold to-gold-dark text-black text-[10px] sm:text-[11px] font-black uppercase tracking-[0.4em] rounded-2xl shadow-2xl shadow-gold/30 hover:shadow-gold/50 hover:scale-[1.01] active:scale-95 transition-all duration-300 disabled:opacity-50">
                                 {isLoading ? 'Sincronizando con la Nube...' : 'Publicar Cita en Google'}
                             </button>
                         </form>
