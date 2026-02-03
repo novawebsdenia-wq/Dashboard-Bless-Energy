@@ -215,7 +215,9 @@ Población: ${city}
 
             const payload: any = {
                 summary: fullTitle,
-                location: address,
+                // FIX: Combinar Dirección + Población para que Google Maps funcione bien
+                // y para que el backend pueda separar address/city por la coma.
+                location: formCity ? `${address}, ${formCity}` : address,
                 description: fullDescription,
                 // Send raw local time so backend extracts "10:00" correctly
                 start: { dateTime: toLocalISO(startDateTime) },
