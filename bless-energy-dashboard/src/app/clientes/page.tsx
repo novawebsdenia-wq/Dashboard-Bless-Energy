@@ -275,7 +275,7 @@ export default function ClientesPage() {
                   className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
                 >
                   <X className="w-3 h-3" />
-                  <span className="hidden sm:inline">X Eliminar</span>
+                  <span className="ml-1">Eliminar</span>
                 </button>
               )}
 
