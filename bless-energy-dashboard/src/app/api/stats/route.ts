@@ -156,7 +156,7 @@ export async function GET() {
       count: todaysEvents.length,
       nextAppointment: nextEvent ? {
         title: nextEvent.summary,
-        time: nextEvent.start?.dateTime ? new Date(nextEvent.start.dateTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : 'Todo el día',
+        time: nextEvent.start?.dateTime ? new Date(nextEvent.start.dateTime).toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : 'Todo el día',
         location: nextEvent.location
       } : undefined
     };

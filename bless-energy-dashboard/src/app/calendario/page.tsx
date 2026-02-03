@@ -525,15 +525,28 @@ Población: ${city}
                                                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/10">
                                                             <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-gold" />
                                                         </div>
-                                                        <span className="truncate">{event.location}</span>
+                                                        <span className="truncate">
+                                                            {(() => {
+                                                                const cityMatch = event.description?.match(/Población: (.*)/);
+                                                                const city = cityMatch ? cityMatch[1].trim() : '';
+                                                                return city ? `${event.location}, ${city}` : event.location;
+                                                            })()}
+                                                        </span>
                                                     </div>
                                                 )}
                                                 {event.description && (
-                                                    <div className="flex items-start gap-3 text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-medium pt-3 border-t border-gray-100 dark:border-gold/5 mt-3">
+                                                    <div className="flex items-start gap-3 text-[10px] sm:text-[11px] pt-3 border-t border-gray-100 dark:border-gold/5 mt-3">
                                                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gold/10 flex items-center justify-center mt-1 border border-gold/10 shrink-0">
                                                             <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-gold" />
                                                         </div>
-                                                        <p className="leading-relaxed opacity-80">{event.description}</p>
+                                                        <p className="leading-relaxed font-black text-gray-900 dark:text-white">
+                                                            {(() => {
+                                                                const separatorIndex = event.description.indexOf('--- Detalles del Cliente ---');
+                                                                return separatorIndex !== -1
+                                                                    ? event.description.substring(0, separatorIndex).trim()
+                                                                    : event.description;
+                                                            })()}
+                                                        </p>
                                                     </div>
                                                 )}
                                             </div>
