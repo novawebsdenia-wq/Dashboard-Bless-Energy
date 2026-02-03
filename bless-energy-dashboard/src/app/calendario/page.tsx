@@ -80,6 +80,7 @@ export default function CalendarioPage() {
     const [formTime, setFormTime] = useState('');
     const [formDuration, setFormDuration] = useState('1 hora');
     const [formNotes, setFormNotes] = useState('');
+    const [sendInvitation, setSendInvitation] = useState(false);
 
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -211,7 +212,9 @@ Población: ${city}
                 location: address,
                 description: fullDescription,
                 start: { dateTime: startDateTime.toISOString() },
-                end: { dateTime: endDateTime.toISOString() }
+                end: { dateTime: endDateTime.toISOString() },
+                sendInvitation,
+                attendees: formEmail ? [{ email: formEmail }] : []
             };
 
             if (editingEvent) {
@@ -243,6 +246,7 @@ Población: ${city}
                 setFormTime('');
                 setFormNotes('');
                 setFormDuration('1 hora');
+                setSendInvitation(false);
                 fetchData();
             } else {
                 throw new Error(data.error);
@@ -418,6 +422,7 @@ Población: ${city}
                                         setFormTime('09:00');
                                         setFormNotes('');
                                         setFormDuration('1 hora');
+                                        setSendInvitation(false);
                                         // Ensure editing event is null
                                         setEditingEvent(null);
                                     }}

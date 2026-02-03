@@ -16,10 +16,11 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
+        const { sendInvitation, ...eventData } = body;
 
         // Add default reminders if not present
-        if (!body.reminders) {
-            body.reminders = {
+        if (!eventData.reminders) {
+            eventData.reminders = {
                 useDefault: false,
                 overrides: [
                     { method: 'email', minutes: 2 * 24 * 60 }, // 2 days before
@@ -29,12 +30,10 @@ export async function POST(request: Request) {
             };
         }
 
-        const event = await createEvent(body);
+        const event = await createEvent(eventData, sendInvitation);
 
         // Notify Team Logic
-        // In a real production environment, this would call an email service or Slack webhook
-        console.log(`[TEAM NOTIFICATION] New Appointment Scheduled: ${body.summary} at ${body.start.dateTime}`);
-        // TODO: Integrate with actual email service (e.g. Resend) or n8n webhook
+        console.log(`[TEAM NOTIFICATION] New Appointment Scheduled: ${eventData.summary} at ${eventData.start.dateTime}`);
 
         return NextResponse.json({ success: true, data: event });
     } catch (error: any) {
@@ -51,8 +50,8 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json();
-        const { eventId, ...eventData } = body;
-        const event = await updateEvent(eventId, eventData);
+        const { eventId, sendInvitation, ...eventData } = body;
+        const event = await updateEvent(eventId, eventData, sendInvitation);
         return NextResponse.json({ success: true, data: event });
     } catch (error: any) {
         return NextResponse.json(

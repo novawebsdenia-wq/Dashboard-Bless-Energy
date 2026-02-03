@@ -36,11 +36,12 @@ export async function listEvents() {
     }
 }
 
-export async function createEvent(event: any) {
+export async function createEvent(event: any, sendUpdates: boolean = false) {
     try {
         const response = await calendar.events.insert({
             calendarId: CALENDAR_ID,
             requestBody: event,
+            sendUpdates: sendUpdates ? 'all' : 'none',
         });
         return response.data;
     } catch (error) {
@@ -49,12 +50,13 @@ export async function createEvent(event: any) {
     }
 }
 
-export async function updateEvent(eventId: string, event: any) {
+export async function updateEvent(eventId: string, event: any, sendUpdates: boolean = false) {
     try {
         const response = await calendar.events.update({
             calendarId: CALENDAR_ID,
             eventId,
             requestBody: event,
+            sendUpdates: sendUpdates ? 'all' : 'none',
         });
         return response.data;
     } catch (error) {
