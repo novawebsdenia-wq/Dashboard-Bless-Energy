@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, User, Phone, Mail, MapPin, Calendar, Clock, Edit2, Save, Trash2, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
+import { getOptionsForField } from '@/lib/constants';
 
 interface DetailSidePanelProps {
     isOpen: boolean;
@@ -163,17 +164,41 @@ export function DetailSidePanel({
                                         <label className="text-[10px] font-black uppercase tracking-widest">{header}</label>
                                     </div>
                                     {isEditing ? (
-                                        <input
-                                            type="text"
-                                            value={editedValues[header] || ''}
-                                            onChange={(e) =>
-                                                setEditedValues((prev) => ({
-                                                    ...prev,
-                                                    [header]: e.target.value,
-                                                }))
+                                        (() => {
+                                            const options = getOptionsForField(header, type.toLowerCase().includes('cliente') ? 'clientes' : '');
+                                            if (options.length > 0) {
+                                                return (
+                                                    <select
+                                                        value={editedValues[header] || ''}
+                                                        onChange={(e) =>
+                                                            setEditedValues((prev) => ({
+                                                                ...prev,
+                                                                [header]: e.target.value,
+                                                            }))
+                                                        }
+                                                        className="w-full p-4 bg-gray-50 dark:bg-white/[0.05] border-2 border-gold/30 focus:border-gold rounded-2xl text-base font-bold text-gray-900 dark:text-white leading-relaxed focus:outline-none transition-colors"
+                                                    >
+                                                        <option value="">Seleccionar...</option>
+                                                        {options.map(opt => (
+                                                            <option key={opt} value={opt}>{opt}</option>
+                                                        ))}
+                                                    </select>
+                                                );
                                             }
-                                            className="w-full p-4 bg-gray-50 dark:bg-white/[0.05] border-2 border-gold/30 focus:border-gold rounded-2xl text-base font-bold text-gray-900 dark:text-white leading-relaxed focus:outline-none transition-colors"
-                                        />
+                                            return (
+                                                <input
+                                                    type="text"
+                                                    value={editedValues[header] || ''}
+                                                    onChange={(e) =>
+                                                        setEditedValues((prev) => ({
+                                                            ...prev,
+                                                            [header]: e.target.value,
+                                                        }))
+                                                    }
+                                                    className="w-full p-4 bg-gray-50 dark:bg-white/[0.05] border-2 border-gold/30 focus:border-gold rounded-2xl text-base font-bold text-gray-900 dark:text-white leading-relaxed focus:outline-none transition-colors"
+                                                />
+                                            );
+                                        })()
                                     ) : (
                                         <div className="p-4 bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-gold/10 rounded-2xl">
                                             <p className="text-base font-bold text-gray-900 dark:text-white leading-relaxed">

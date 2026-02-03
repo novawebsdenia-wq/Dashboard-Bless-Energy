@@ -171,8 +171,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     fetchNotifications();
-    // Refresh every 30 seconds for faster notifications
-    const interval = setInterval(fetchNotifications, 30000);
+    // Refresh every 10 seconds for faster notifications
+    const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 

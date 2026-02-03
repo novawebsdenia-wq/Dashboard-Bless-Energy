@@ -3,13 +3,19 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import Header from '@/components/Header';
 import DataTable from '@/components/DataTable';
+import TabSelector from '@/components/TabSelector'; // Added import
 import { Filter, X, ArrowDownUp } from 'lucide-react';
 import { exportToExcel } from '@/lib/exportUtils';
 import { TableSkeleton, StatsCardSkeleton } from '@/components/Skeleton';
 
+interface Tab {
+  sheetId?: number;
+  title?: string;
+}
 
 export default function EmailsPage() {
-  const [activeTab, setActiveTab] = useState('mails');
+  const [tabs, setTabs] = useState<Tab[]>([]); // Added tabs state
+  const [activeTab, setActiveTab] = useState(''); // Initialized as empty
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<Record<string, string | number>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,6 +32,7 @@ export default function EmailsPage() {
       const response = await fetch('/api/sheets/tabs?sheet=emails');
       const data = await response.json();
       if (data.success && data.data) {
+        setTabs(data.data); // Set the tabs list
         if (data.data.length > 0 && !activeTab) {
           setActiveTab(data.data[0].title);
         }
@@ -186,6 +193,15 @@ export default function EmailsPage() {
         isLoading={isLoading}
       />
 
+      {/* Tab Selector */}
+      <div className="px-8 mt-4">
+        <TabSelector
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
+      </div>
+
       <main className="flex-1 p-8 overflow-y-auto custom-scrollbar">
         <div className="max-w-[1600px] mx-auto space-y-8 pb-12">
           {/* Stats summary */}
@@ -242,8 +258,8 @@ export default function EmailsPage() {
                 <button
                   onClick={() => setSortOrder(sortOrder === 'recent' ? '' : 'recent')}
                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'recent'
-                      ? 'bg-gold text-black shadow-sm'
-                      : 'text-gray-500 hover:text-gold'
+                    ? 'bg-gold text-black shadow-sm'
+                    : 'text-gray-500 hover:text-gold'
                     }`}
                 >
                   Reciente
@@ -251,8 +267,8 @@ export default function EmailsPage() {
                 <button
                   onClick={() => setSortOrder(sortOrder === 'oldest' ? '' : 'oldest')}
                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'oldest'
-                      ? 'bg-gold text-black shadow-sm'
-                      : 'text-gray-500 hover:text-gold'
+                    ? 'bg-gold text-black shadow-sm'
+                    : 'text-gray-500 hover:text-gold'
                     }`}
                 >
                   Antiguo
@@ -264,8 +280,8 @@ export default function EmailsPage() {
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm focus:outline-none focus:border-gold/50 ${selectedCategory
-                      ? 'bg-gold text-black border-gold/40'
-                      : 'bg-white dark:bg-white/[0.05] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gold/20 hover:border-gold/40'
+                    ? 'bg-gold text-black border-gold/40'
+                    : 'bg-white dark:bg-white/[0.05] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gold/20 hover:border-gold/40'
                     }`}
                 >
                   <option value="">Categoría</option>
@@ -286,7 +302,7 @@ export default function EmailsPage() {
                   className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
                 >
                   <X className="w-3 h-3" />
-                  <span className="hidden sm:inline">Limpiar</span>
+                  <span className="hidden sm:inline">X Eliminar</span>
                 </button>
               )}
             </div>

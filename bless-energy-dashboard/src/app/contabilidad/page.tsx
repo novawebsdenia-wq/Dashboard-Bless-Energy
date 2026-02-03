@@ -334,8 +334,8 @@ export default function ContabilidadPage() {
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${hasActiveFilters
-                    ? 'bg-gold text-black shadow-lg shadow-gold/20'
-                    : 'bg-white dark:bg-white/[0.05] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20 hover:border-gold/40'
+                  ? 'bg-gold text-black shadow-lg shadow-gold/20'
+                  : 'bg-white dark:bg-white/[0.05] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gold/20 hover:border-gold/40'
                   }`}
               >
                 <Filter className="w-3.5 h-3.5" />
@@ -352,8 +352,8 @@ export default function ContabilidadPage() {
                 <button
                   onClick={() => setSortOrder(sortOrder === 'recent' ? '' : 'recent')}
                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'recent'
-                      ? 'bg-gold text-black shadow-sm'
-                      : 'text-gray-500 hover:text-gold'
+                    ? 'bg-gold text-black shadow-sm'
+                    : 'text-gray-500 hover:text-gold'
                     }`}
                 >
                   Reciente
@@ -361,8 +361,8 @@ export default function ContabilidadPage() {
                 <button
                   onClick={() => setSortOrder(sortOrder === 'oldest' ? '' : 'oldest')}
                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'oldest'
-                      ? 'bg-gold text-black shadow-sm'
-                      : 'text-gray-500 hover:text-gold'
+                    ? 'bg-gold text-black shadow-sm'
+                    : 'text-gray-500 hover:text-gold'
                     }`}
                 >
                   Antiguo
@@ -374,8 +374,8 @@ export default function ContabilidadPage() {
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm focus:outline-none focus:border-gold/50 ${selectedCategory
-                      ? 'bg-gold text-black border-gold/40'
-                      : 'bg-white dark:bg-white/[0.05] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gold/20 hover:border-gold/40'
+                    ? 'bg-gold text-black border-gold/40'
+                    : 'bg-white dark:bg-white/[0.05] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gold/20 hover:border-gold/40'
                     }`}
                 >
                   <option value="">Categoría</option>
@@ -389,8 +389,8 @@ export default function ContabilidadPage() {
                 value={selectedPayment}
                 onChange={(e) => setSelectedPayment(e.target.value)}
                 className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm focus:outline-none focus:border-gold/50 ${selectedPayment
-                    ? 'bg-gold text-black border-gold/40'
-                    : 'bg-white dark:bg-white/[0.05] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gold/20 hover:border-gold/40'
+                  ? 'bg-gold text-black border-gold/40'
+                  : 'bg-white dark:bg-white/[0.05] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gold/20 hover:border-gold/40'
                   }`}
               >
                 <option value="">Método de Pago</option>
@@ -405,7 +405,7 @@ export default function ContabilidadPage() {
                   className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
                 >
                   <X className="w-3 h-3" />
-                  <span className="hidden sm:inline">Limpiar</span>
+                  <span className="hidden sm:inline">X Eliminar</span>
                 </button>
               )}
             </div>

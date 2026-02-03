@@ -8,9 +8,11 @@ import { Filter, X, UserPlus } from 'lucide-react';
 import { exportToExcel } from '@/lib/exportUtils';
 import { TableSkeleton, StatsCardSkeleton } from '@/components/Skeleton';
 import { useToast } from '@/context/ToastContext';
+import { useNotifications } from '@/context/NotificationContext';
 
 export default function ClientesPage() {
   const { toast } = useToast();
+  const { refreshNotifications } = useNotifications();
   const [activeTab, setActiveTab] = useState('');
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<Record<string, string | number>[]>([]);
@@ -111,6 +113,7 @@ export default function ClientesPage() {
       title: 'Cliente creado',
       message: 'El nuevo cliente se ha añadido correctamente.'
     });
+    refreshNotifications();
     fetchData();
   };
 
@@ -245,8 +248,8 @@ export default function ClientesPage() {
                 <button
                   onClick={() => setSortOrder(sortOrder === 'recent' ? '' : 'recent')}
                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'recent'
-                      ? 'bg-gold text-black shadow-sm'
-                      : 'text-gray-500 hover:text-gold'
+                    ? 'bg-gold text-black shadow-sm'
+                    : 'text-gray-500 hover:text-gold'
                     }`}
                 >
                   Reciente
@@ -254,8 +257,8 @@ export default function ClientesPage() {
                 <button
                   onClick={() => setSortOrder(sortOrder === 'oldest' ? '' : 'oldest')}
                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'oldest'
-                      ? 'bg-gold text-black shadow-sm'
-                      : 'text-gray-500 hover:text-gold'
+                    ? 'bg-gold text-black shadow-sm'
+                    : 'text-gray-500 hover:text-gold'
                     }`}
                 >
                   Antiguo
@@ -272,7 +275,7 @@ export default function ClientesPage() {
                   className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
                 >
                   <X className="w-3 h-3" />
-                  <span className="hidden sm:inline">Limpiar</span>
+                  <span className="hidden sm:inline">X Eliminar</span>
                 </button>
               )}
 
@@ -318,12 +321,13 @@ export default function ClientesPage() {
             </div>
           )}
         </div>
-      </main>
+      </main >
 
       {/* Add Client Side Panel */}
-      <DetailSidePanel
+      < DetailSidePanel
         isOpen={showAddPanel}
-        onClose={() => setShowAddPanel(false)}
+        onClose={() => setShowAddPanel(false)
+        }
         data={emptyClientData}
         headers={headers}
         onUpdate={async (values) => {
@@ -332,6 +336,6 @@ export default function ClientesPage() {
         type="Nuevo Cliente"
         startInEditMode
       />
-    </div>
+    </div >
   );
 }

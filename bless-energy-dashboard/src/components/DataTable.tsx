@@ -13,13 +13,15 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
+import { useNotifications } from '@/context/NotificationContext';
 import { DetailSidePanel } from './DetailSidePanel';
 
-// Status options for different fields
-const STATUS_OPTIONS = ['Pendiente', 'Contactado', 'En proceso', 'Cerrado', 'Cancelado'];
-const PRIORITY_OPTIONS_EMAIL = ['Baja', 'Normal', 'Media', 'Alta', 'Critica'];
-const PRIORITY_OPTIONS_DEFAULT = ['Baja', 'Normal', 'Alta', 'Urgente'];
-const CLIENT_STATUS_OPTIONS = ['Nuevo', 'Activo', 'En proceso', 'Inactivo'];
+import {
+  STATUS_OPTIONS,
+  PRIORITY_OPTIONS_EMAIL,
+  PRIORITY_OPTIONS_DEFAULT,
+  CLIENT_STATUS_OPTIONS
+} from '@/lib/constants';
 
 interface DataTableProps {
   headers: string[];
@@ -53,6 +55,7 @@ export default function DataTable({
   // Optimistic updates - store temporary values while saving
   const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, string>>({});
   const { toast } = useToast();
+  const { refreshNotifications } = useNotifications();
 
   // Detail View State
   const [selectedRowForDetail, setSelectedRowForDetail] = useState<Record<string, string | number> | null>(null);
@@ -177,6 +180,7 @@ export default function DataTable({
       try {
         const values = headers.map((header) => editedValues[header] || '');
         await onUpdate(rowIndex, values);
+        refreshNotifications();
         toast({
           type: 'success',
           title: 'Registro actualizado',
@@ -223,6 +227,7 @@ export default function DataTable({
     setIsSaving(true);
     try {
       await onUpdate(rowIndex, values);
+      refreshNotifications();
     } finally {
       setIsSaving(false);
       // Clear optimistic update after save completes (data will be refreshed)
@@ -617,35 +622,41 @@ export default function DataTable({
                       return (
                         <td key={header} className="px-6 py-4 transition-transform duration-300 group-hover:translate-x-0.5">
                           {isEditing ? (
-                            fieldType !== 'text' && showStatusSelectors ? (
-                              <select
-                                value={editedValues[header] || ''}
-                                onChange={(e) =>
-                                  setEditedValues((prev) => ({
-                                    ...prev,
-                                    [header]: e.target.value,
-                                  }))
-                                }
-                                className="w-full px-3 py-1.5 bg-white dark:bg-black/60 border border-gold/30 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold/20"
-                              >
-                                <option value="">Seleccionar...</option>
-                                {options.map((opt) => (
-                                  <option key={opt} value={opt}>{opt}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              <input
-                                type="text"
-                                value={editedValues[header] || ''}
-                                onChange={(e) =>
-                                  setEditedValues((prev) => ({
-                                    ...prev,
-                                    [header]: e.target.value,
-                                  }))
-                                }
-                                className="w-full px-3 py-1.5 bg-white dark:bg-black/60 border border-gold/30 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold/20"
-                              />
-                            )
+                            (() => {
+                              const options = getOptionsForField(header);
+                              if (options.length > 0) {
+                                return (
+                                  <select
+                                    value={editedValues[header] || ''}
+                                    onChange={(e) =>
+                                      setEditedValues((prev) => ({
+                                        ...prev,
+                                        [header]: e.target.value,
+                                      }))
+                                    }
+                                    className="w-full px-3 py-1.5 bg-white dark:bg-black/60 border border-gold/30 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold/20"
+                                  >
+                                    <option value="">Seleccionar...</option>
+                                    {options.map((opt) => (
+                                      <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                  </select>
+                                );
+                              }
+                              return (
+                                <input
+                                  type="text"
+                                  value={editedValues[header] || ''}
+                                  onChange={(e) =>
+                                    setEditedValues((prev) => ({
+                                      ...prev,
+                                      [header]: e.target.value,
+                                    }))
+                                  }
+                                  className="w-full px-3 py-1.5 bg-white dark:bg-black/60 border border-gold/30 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold/20"
+                                />
+                              );
+                            })()
                           ) : showAsBadge || (fieldType === 'priority' && pageType === 'emails') ? (
                             <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-tight shadow-sm ${getPriorityClass(currentValue)}`}>
                               {currentValue || '-'}

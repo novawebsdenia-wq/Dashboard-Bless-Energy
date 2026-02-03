@@ -241,8 +241,8 @@ export default function FormularioPage() {
                 <button
                   onClick={() => setSortOrder(sortOrder === 'recent' ? '' : 'recent')}
                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'recent'
-                      ? 'bg-gold text-black shadow-sm'
-                      : 'text-gray-500 hover:text-gold'
+                    ? 'bg-gold text-black shadow-sm'
+                    : 'text-gray-500 hover:text-gold'
                     }`}
                 >
                   Reciente
@@ -250,8 +250,8 @@ export default function FormularioPage() {
                 <button
                   onClick={() => setSortOrder(sortOrder === 'oldest' ? '' : 'oldest')}
                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortOrder === 'oldest'
-                      ? 'bg-gold text-black shadow-sm'
-                      : 'text-gray-500 hover:text-gold'
+                    ? 'bg-gold text-black shadow-sm'
+                    : 'text-gray-500 hover:text-gold'
                     }`}
                 >
                   Antiguo
@@ -268,7 +268,7 @@ export default function FormularioPage() {
                   className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
                 >
                   <X className="w-3 h-3" />
-                  <span className="hidden sm:inline">Limpiar</span>
+                  <span className="hidden sm:inline">X Eliminar</span>
                 </button>
               )}
             </div>
