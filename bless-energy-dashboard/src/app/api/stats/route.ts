@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSheetData, getSheetInfo, SHEET_IDS } from '@/lib/google-sheets';
+import { listEvents } from '@/lib/google-calendar';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -19,12 +20,13 @@ export async function GET() {
     const formularioTab = formularioInfo?.[0]?.title || 'Sheet1';
     const clientesTab = clientesInfo?.[0]?.title || 'Sheet1';
 
-    // Fetch data from all sheets in parallel
-    const [emailsData, calculadoraData, formularioData, clientesData] = await Promise.all([
+    // Fetch data from all sheets and calendar in parallel
+    const [emailsData, calculadoraData, formularioData, clientesData, calendarEvents] = await Promise.all([
       getSheetData(SHEET_IDS.emails, `${emailsTab}!A:Z`).catch(() => ({ headers: [], rows: [] })),
       getSheetData(SHEET_IDS.calculadora, `${calculadoraTab}!A:Z`).catch(() => ({ headers: [], rows: [] })),
       getSheetData(SHEET_IDS.formulario, `${formularioTab}!A:Z`).catch(() => ({ headers: [], rows: [] })),
       getSheetData(SHEET_IDS.clientes, `${clientesTab}!A:Z`).catch(() => ({ headers: [], rows: [] })),
+      listEvents().catch(() => []),
     ]);
 
     // Helper to parse dates in various formats including time
@@ -127,6 +129,38 @@ export async function GET() {
 
     const leadsPendientes = countPending(formularioData) + countPending(calculadoraData);
 
+    // Process Calendar Events for Dashboard Widget
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    // Filter events happening today
+    const todaysEvents = calendarEvents.filter((event: any) => {
+      const start = event.start.dateTime || event.start.date;
+      return start && start.startsWith(todayStr);
+    });
+
+    // Find next upcoming appointment today
+    const nextEvent = todaysEvents
+      .filter((event: any) => {
+        const startStr = event.start.dateTime || event.start.date;
+        const startDate = new Date(startStr);
+        return startDate > now;
+      })
+      .sort((a: any, b: any) => {
+        const d1 = new Date(a.start.dateTime || a.start.date).getTime();
+        const d2 = new Date(b.start.dateTime || b.start.date).getTime();
+        return d1 - d2;
+      })[0];
+
+    const todaysAppointments = {
+      count: todaysEvents.length,
+      nextAppointment: nextEvent ? {
+        title: nextEvent.summary,
+        time: nextEvent.start?.dateTime ? new Date(nextEvent.start.dateTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : 'Todo el día',
+        location: nextEvent.location
+      } : undefined
+    };
+
     // Build recent activity
     const recentActivity = getRecentActivity(calculadoraData, formularioData, clientesData, emailsData, parseDate);
 
@@ -148,6 +182,7 @@ export async function GET() {
         { name: 'Formulario', value: validFormulario.length },
       ],
       recentActivity,
+      todaysAppointments,
     };
 
     return NextResponse.json({
@@ -179,7 +214,7 @@ function getRecentActivity(
 
   // Helper to find column index
   const findCol = (headers: string[], ...keywords: string[]) => {
-    return headers.findIndex(h => 
+    return headers.findIndex(h =>
       keywords.some(k => h.toLowerCase().includes(k.toLowerCase()))
     );
   };
@@ -189,14 +224,14 @@ function getRecentActivity(
   const calcNombreIdx = findCol(calculadoraData.headers, 'nombre');
   const calcEmailIdx = findCol(calculadoraData.headers, 'email', 'correo');
   const calcEstadoIdx = findCol(calculadoraData.headers, 'estado');
-  
+
   calculadoraData.rows.forEach((row) => {
     const dateStr = calcFechaIdx >= 0 ? row[calcFechaIdx] : '';
-    const name = (calcNombreIdx >= 0 ? row[calcNombreIdx] : '') || 
-                 (calcEmailIdx >= 0 ? row[calcEmailIdx] : '') || 
-                 'Lead sin nombre';
+    const name = (calcNombreIdx >= 0 ? row[calcNombreIdx] : '') ||
+      (calcEmailIdx >= 0 ? row[calcEmailIdx] : '') ||
+      'Lead sin nombre';
     const status = calcEstadoIdx >= 0 ? row[calcEstadoIdx] : 'Pendiente';
-    
+
     const date = parseDate(dateStr);
     if (date) {
       activities.push({
@@ -214,14 +249,14 @@ function getRecentActivity(
   const formNombreIdx = findCol(formularioData.headers, 'nombre');
   const formEmailIdx = findCol(formularioData.headers, 'email', 'correo');
   const formEstadoIdx = findCol(formularioData.headers, 'estado');
-  
+
   formularioData.rows.forEach((row) => {
     const dateStr = formFechaIdx >= 0 ? row[formFechaIdx] : '';
-    const name = (formNombreIdx >= 0 ? row[formNombreIdx] : '') || 
-                 (formEmailIdx >= 0 ? row[formEmailIdx] : '') || 
-                 'Lead sin nombre';
+    const name = (formNombreIdx >= 0 ? row[formNombreIdx] : '') ||
+      (formEmailIdx >= 0 ? row[formEmailIdx] : '') ||
+      'Lead sin nombre';
     const status = formEstadoIdx >= 0 ? row[formEstadoIdx] : 'Pendiente';
-    
+
     const date = parseDate(dateStr);
     if (date) {
       activities.push({
@@ -238,12 +273,12 @@ function getRecentActivity(
   const clientFechaIdx = findCol(clientesData.headers, 'fecha');
   const clientNombreIdx = findCol(clientesData.headers, 'nombre');
   const clientEstadoIdx = findCol(clientesData.headers, 'estado');
-  
+
   clientesData.rows.forEach((row) => {
     const dateStr = clientFechaIdx >= 0 ? row[clientFechaIdx] : '';
     const name = (clientNombreIdx >= 0 ? row[clientNombreIdx] : '') || 'Cliente sin nombre';
     const status = clientEstadoIdx >= 0 ? row[clientEstadoIdx] : 'Nuevo';
-    
+
     const date = parseDate(dateStr);
     if (date) {
       activities.push({
@@ -260,13 +295,13 @@ function getRecentActivity(
   const emailFechaIdx = findCol(emailsData.headers, 'fecha');
   const emailAsuntoIdx = findCol(emailsData.headers, 'asunto', 'subject');
   const emailRemitenteIdx = findCol(emailsData.headers, 'remitente', 'from', 'de');
-  
+
   emailsData.rows.forEach((row) => {
     const dateStr = emailFechaIdx >= 0 ? row[emailFechaIdx] : '';
     const asunto = emailAsuntoIdx >= 0 ? row[emailAsuntoIdx] : '';
     const remitente = emailRemitenteIdx >= 0 ? row[emailRemitenteIdx] : '';
     const name = asunto || remitente || 'Email sin asunto';
-    
+
     const date = parseDate(dateStr);
     if (date) {
       activities.push({

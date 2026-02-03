@@ -428,17 +428,20 @@ Email: ${formEmail}
                                     </div>
                                 ) : (
                                     selectedDayEvents.map(event => (
-                                        <div key={event.id} className="group p-5 sm:p-6 bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-gold/10 rounded-[2rem] hover:border-gold/40 hover:bg-gold/5 transition-all duration-300 relative">
-                                            <div className="flex justify-between items-start mb-4 pr-10">
-                                                <h4 className="font-black text-gray-900 dark:text-white text-sm sm:text-base leading-tight group-hover:text-gold transition-colors">
+                                        <div key={event.id} className="group p-5 sm:p-6 bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-gold/10 rounded-[2rem] hover:border-gold/40 hover:bg-gold/5 transition-all duration-300 flex flex-col gap-4">
+                                            <div className="w-full">
+                                                <h4 className="font-black text-gray-900 dark:text-white text-sm sm:text-base leading-tight group-hover:text-gold transition-colors break-words">
                                                     {event.summary}
                                                 </h4>
-                                                <div className="absolute top-6 right-6 flex items-center gap-2">
-                                                    <div className="px-2 py-1 bg-gold/20 rounded-lg text-[9px] font-black text-gold uppercase tracking-widest">
-                                                        {event.start.dateTime
-                                                            ? format(parseISO(event.start.dateTime), 'HH:mm')
-                                                            : 'Todo el día'}
-                                                    </div>
+                                            </div>
+
+                                            <div className="flex items-center justify-between w-full border-b border-gray-100 dark:border-white/5 pb-4">
+                                                <div className="px-3 py-1.5 bg-gold/20 rounded-lg text-[10px] font-black text-gold uppercase tracking-widest">
+                                                    {event.start.dateTime
+                                                        ? format(parseISO(event.start.dateTime), 'HH:mm')
+                                                        : 'Todo el día'}
+                                                </div>
+                                                <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={() => {
                                                             setEditingEvent(event);
@@ -543,23 +546,27 @@ Email: ${formEmail}
             {/* Enhanced Add Modal */}
             {isAddModalOpen && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-2xl z-50 flex items-center justify-center p-4 overflow-y-auto">
-                    <div className="bg-white dark:bg-[#080808] w-full max-w-xl rounded-[3.5rem] border border-gray-200 dark:border-gold/20 shadow-2xl relative animate-in fade-in zoom-in-95 duration-500 my-8">
-                        <div className="p-8 sm:p-10 border-b border-gray-100 dark:border-gold/10 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
-                            <div>
+                    <div className="bg-white dark:bg-[#080808] w-full max-w-xl rounded-[2.5rem] sm:rounded-[3.5rem] border border-gray-200 dark:border-gold/20 shadow-2xl relative animate-in fade-in zoom-in-95 duration-500 my-4 sm:my-8 flex flex-col max-h-[85vh]">
+                        <div className="p-6 sm:p-10 border-b border-gray-100 dark:border-gold/10 flex justify-between items-center bg-gray-50/80 dark:bg-[#080808]/80 backdrop-blur-md sticky top-0 z-50 rounded-t-[2.5rem] sm:rounded-t-[3.5rem]">
+                            <div className="pr-4">
                                 <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
                                     {editingEvent ? 'Editar Cita' : 'Nueva Cita'}
                                 </h3>
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-2 flex items-center gap-2">
                                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                    Conexión Cloud Activa
+                                    Cloud Sync
                                 </p>
                             </div>
-                            <button onClick={() => setIsAddModalOpen(false)} className="p-3 sm:p-4 hover:bg-gray-200 dark:hover:bg-white/10 rounded-2xl transition-all">
-                                <X className="w-6 h-6 sm:w-7 sm:h-7 text-gray-400" />
+                            <button
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="p-3 bg-gray-100 dark:bg-white/10 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg shrink-0"
+                                aria-label="Cerrar"
+                            >
+                                <X className="w-6 h-6" />
                             </button>
                         </div>
 
-                        <form className="p-8 sm:p-10 space-y-6" onSubmit={handleSubmit}>
+                        <form className="p-6 sm:p-10 space-y-6 overflow-y-auto custom-scrollbar" onSubmit={handleSubmit}>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
