@@ -13,7 +13,8 @@ import {
     Calendar as CalendarIcon,
     User,
     Navigation,
-    FileText
+    FileText,
+    CalendarDays
 } from 'lucide-react';
 import {
     format,
@@ -71,28 +72,23 @@ export default function CalendarioPage() {
                 setEvents(calData.data);
             }
 
-            // Fetch Clients for selector
+            // Fetch Clients for selector from the 'clientes' sheet
             const clientRes = await fetch('/api/sheets?sheet=clientes');
             const clientData = await clientRes.json();
-            if (clientData.success) {
-                // Headers are first row, data from second
-                const nombreIdx = clientData.headers.findIndex((h: string) => h.toLowerCase().includes('nombre'));
-                const clientList = clientData.rows.map((row: string[]) => ({
-                    nombre: row[nombreIdx] || 'S/N'
+            if (clientData.success && clientData.data) {
+                // clientData.data mapping from api/sheets/route.ts returns { headers, rows }
+                // where rows is an array of objects
+                const clientList = clientData.data.rows.map((row: any) => ({
+                    nombre: row['Nombre'] || row['nombre'] || row['TITLE'] || Object.values(row)[2] || 'S/N'
                 })).filter((c: any) => c.nombre !== 'S/N');
                 setClients(clientList);
             }
         } catch (error) {
             console.error('Error fetching calendar data:', error);
-            toast({
-                type: 'error',
-                title: 'Error de Sincronización',
-                message: 'No se pudieron cargar los datos. Verifica la conexión con Google API.'
-            });
         } finally {
             setIsLoading(false);
         }
-    }, [toast]);
+    }, []);
 
     useEffect(() => {
         fetchData();
@@ -111,7 +107,6 @@ export default function CalendarioPage() {
         const duration = formData.get('duration') as string;
         const notes = formData.get('notes') as string;
 
-        // Calculate start/end time
         const startDateTime = new Date(selectedDate);
         const [hours, minutes] = time.split(':');
         startDateTime.setHours(parseInt(hours), parseInt(minutes));
@@ -150,11 +145,11 @@ export default function CalendarioPage() {
             } else {
                 throw new Error(data.error);
             }
-        } catch (error) {
+        } catch (error: any) {
             toast({
                 type: 'error',
-                title: 'Error al guardar',
-                message: 'No se pudo crear la cita. Revisa los permisos de Google Cloud.'
+                title: 'Error de Sincronización',
+                message: error.message || 'No se pudo añadir a Google Calendar. Verifica los permisos.'
             });
         } finally {
             setIsLoading(false);
@@ -162,26 +157,34 @@ export default function CalendarioPage() {
     };
 
     const renderHeader = () => (
-        <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
-            <h2 className="text-2xl font-black text-gray-900 dark:text-white capitalize tracking-tight">
-                {format(currentMonth, 'MMMM yyyy', { locale: es })}
-            </h2>
-            <div className="flex items-center gap-2 bg-white dark:bg-white/5 p-1.5 rounded-2xl border border-gray-100 dark:border-gold/10 shadow-sm w-full sm:w-auto overflow-x-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+            <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gold/10 rounded-2xl flex items-center justify-center border border-gold/20">
+                    <CalendarDays className="w-6 h-6 text-gold" />
+                </div>
+                <div>
+                    <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white capitalize tracking-tighter">
+                        {format(currentMonth, 'MMMM yyyy', { locale: es })}
+                    </h2>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Gestión de Agenda</p>
+                </div>
+            </div>
+            <div className="flex items-center gap-2 bg-white dark:bg-white/5 p-1.5 rounded-2xl border border-gray-100 dark:border-gold/10 shadow-sm w-full sm:w-auto">
                 <button
                     onClick={prevMonth}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-all"
+                    className="flex-1 sm:flex-none p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-all flex justify-center"
                 >
                     <ChevronLeft className="w-5 h-5 text-gold" />
                 </button>
                 <button
-                    onClick={() => setCurrentMonth(new Date())}
-                    className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gold hover:bg-gold/10 rounded-xl transition-all"
+                    onClick={() => { setCurrentMonth(new Date()); setSelectedDate(new Date()); }}
+                    className="flex-1 sm:flex-none px-6 py-2 text-[10px] font-black uppercase tracking-widest text-gold hover:bg-gold/10 rounded-xl transition-all"
                 >
                     Hoy
                 </button>
                 <button
                     onClick={nextMonth}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-all"
+                    className="flex-1 sm:flex-none p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-all flex justify-center"
                 >
                     <ChevronRight className="w-5 h-5 text-gold" />
                 </button>
@@ -192,14 +195,14 @@ export default function CalendarioPage() {
     const renderCells = () => {
         const monthStart = startOfMonth(currentMonth);
         const monthEnd = endOfMonth(monthStart);
-        const startDate = startOfWeek(monthStart);
-        const endDate = endOfWeek(monthEnd);
+        const startDate = startOfWeek(monthStart, { locale: es });
+        const endDate = endOfWeek(monthEnd, { locale: es });
 
         const rows = [];
         let days = [];
         let day = startDate;
 
-        const daysNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const daysNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
         while (day <= endDate) {
             for (let i = 0; i < 7; i++) {
@@ -212,33 +215,33 @@ export default function CalendarioPage() {
                 days.push(
                     <div
                         key={day.toString()}
-                        className={`min-h-[80px] sm:min-h-[120px] p-2 border-t border-r border-gray-100 dark:border-gold/10 transition-all cursor-pointer relative group ${!isSameMonth(day, monthStart) ? 'hidden sm:block bg-gray-50/30 dark:bg-transparent opacity-20' : ''
-                            } ${isSameDay(day, selectedDate) ? 'bg-gold/5 dark:bg-gold/5 ring-1 ring-inset ring-gold/20' : 'hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                        className={`min-h-[100px] sm:min-h-[140px] p-2 sm:p-3 border-t border-r border-gray-100 dark:border-gold/10 transition-all cursor-pointer relative group ${!isSameMonth(day, monthStart) ? 'hidden sm:block bg-gray-50/30 dark:bg-transparent opacity-20' : ''
+                            } ${isSameDay(day, selectedDate) ? 'bg-gold/5 dark:bg-gold/5 ring-2 ring-inset ring-gold/30' : 'hover:bg-gray-50 dark:hover:bg-white/5'}`}
                         onClick={() => setSelectedDate(cloneDay)}
                     >
-                        <div className="flex justify-between items-start mb-1">
-                            <span className={`text-[10px] sm:text-xs font-black ${isToday(day)
-                                    ? 'w-6 h-6 flex items-center justify-center bg-gold text-black rounded-full'
-                                    : isSameDay(day, selectedDate) ? 'text-gold' : 'text-gray-400 dark:text-gray-500'
+                        <div className="flex justify-between items-start mb-2">
+                            <span className={`text-xs sm:text-sm font-black transition-transform group-hover:scale-110 ${isToday(day)
+                                    ? 'w-7 h-7 flex items-center justify-center bg-gold text-black rounded-full shadow-lg shadow-gold/30'
+                                    : isSameDay(day, selectedDate) ? 'text-gold scale-110' : 'text-gray-400 dark:text-gray-500'
                                 }`}>
                                 {format(day, 'd')}
                             </span>
-                            <span className="sm:hidden text-[8px] font-bold text-gray-300 uppercase tracking-tighter">
+                            <span className="sm:hidden text-[9px] font-black text-gold/40 uppercase tracking-tighter">
                                 {daysNames[i]}
                             </span>
                         </div>
-                        <div className="space-y-1 overflow-hidden">
+                        <div className="space-y-1.5 sm:space-y-2 overflow-hidden">
                             {dayEvents.slice(0, 3).map(event => (
                                 <div
                                     key={event.id}
-                                    className="px-1 py-0.5 bg-gold/10 border-l-2 border-gold rounded text-[8px] font-bold text-gray-900 dark:text-gray-300 truncate"
+                                    className="px-2 py-1 bg-gold/10 border-l-[3px] border-gold rounded-md text-[9px] font-bold text-gray-900 dark:text-gray-200 truncate shadow-sm"
                                 >
                                     {event.summary}
                                 </div>
                             ))}
                             {dayEvents.length > 3 && (
-                                <div className="text-[7px] font-black text-gold text-center uppercase tracking-widest pt-1">
-                                    +{dayEvents.length - 3} más
+                                <div className="text-[8px] font-black text-gold text-center uppercase tracking-[0.2em] pt-1 animate-pulse">
+                                    +{dayEvents.length - 3} Eventos
                                 </div>
                             )}
                         </div>
@@ -254,17 +257,17 @@ export default function CalendarioPage() {
             days = [];
         }
         return (
-            <div className="border border-gray-200 dark:border-gold/20 rounded-3xl overflow-hidden bg-white dark:bg-black/40 shadow-xl shadow-black/5">
+            <div className="border border-gray-200 dark:border-gold/20 rounded-[2rem] overflow-hidden bg-white dark:bg-black/40 shadow-2xl">
                 <div className="hidden sm:grid grid-cols-7 bg-gray-50 dark:bg-white/5 border-b border-gray-100 dark:border-gold/10">
                     {daysNames.map(day => (
                         <div key={day} className="py-4 text-center">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500">
                                 {day}
                             </span>
                         </div>
                     ))}
                 </div>
-                <div className="grid grid-cols-1 sm:block h-[300px] sm:h-[600px] overflow-y-auto custom-scrollbar">
+                <div className="custom-calendar-grid h-[500px] sm:h-[700px] overflow-y-auto custom-scrollbar">
                     {rows}
                 </div>
             </div>
@@ -279,14 +282,14 @@ export default function CalendarioPage() {
     return (
         <div className="flex flex-col h-screen bg-gray-50 dark:bg-[#050505] overflow-hidden">
             <Header
-                title="Calendario"
-                subtitle="Sincronizado con Google Calendar"
+                title="Calendario Profesional"
+                subtitle="Sincronización con Google & Clientes"
                 onRefresh={fetchData}
                 isLoading={isLoading}
             />
 
             <main className="flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar">
-                <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-8">
+                <div className="max-w-[1600px] mx-auto flex flex-col xl:flex-row gap-8">
                     {/* Calendar Main Grid */}
                     <div className="flex-1 min-w-0">
                         {renderHeader()}
@@ -294,65 +297,62 @@ export default function CalendarioPage() {
                     </div>
 
                     {/* Sidebar Agenda */}
-                    <div className="w-full lg:w-96 shrink-0 order-first lg:order-last">
-                        <div className="bg-white dark:bg-black p-8 rounded-[2.5rem] border border-gray-200 dark:border-gold/20 shadow-2xl sticky top-0">
-                            <div className="flex justify-between items-start mb-8">
+                    <div className="w-full xl:w-[400px] shrink-0 border-t xl:border-t-0 xl:border-l border-gray-200 dark:border-gold/10 pt-8 xl:pt-0 xl:pl-8">
+                        <div className="bg-white dark:bg-black p-8 rounded-[3rem] border border-gray-200 dark:border-gold/20 shadow-2xl sticky top-0 bg-opacity-80 backdrop-blur-xl">
+                            <div className="flex justify-between items-start mb-10">
                                 <div>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gold mb-2 flex items-center gap-2">
-                                        <Navigation className="w-3 h-3" />
-                                        Agenda del Día
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold mb-3 flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-gold rounded-full animate-ping"></span>
+                                        Día Seleccionado
                                     </p>
-                                    <h3 className="text-2xl font-black text-gray-900 dark:text-white">
+                                    <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">
                                         {format(selectedDate, "d 'de' MMMM", { locale: es })}
                                     </h3>
                                 </div>
                                 <button
                                     onClick={() => setIsAddModalOpen(true)}
-                                    className="p-4 bg-gold text-black rounded-2xl shadow-lg shadow-gold/20 hover:scale-110 active:scale-95 transition-all"
+                                    className="p-5 bg-gold text-black rounded-2xl shadow-xl shadow-gold/20 hover:scale-110 active:scale-95 transition-all border-none"
                                 >
-                                    <Plus className="w-6 h-6" />
+                                    <Plus className="w-7 h-7" />
                                 </button>
                             </div>
 
-                            <div className="space-y-4 max-h-[300px] sm:max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+                            <div className="space-y-6 max-h-[400px] sm:max-h-[600px] overflow-y-auto custom-scrollbar pr-3">
                                 {selectedDayEvents.length === 0 ? (
-                                    <div className="py-20 text-center opacity-40">
-                                        <div className="w-16 h-16 bg-gray-50 dark:bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-gray-100 dark:border-gold/10">
-                                            <CalendarIcon className="w-8 h-8 text-gray-400" />
+                                    <div className="py-24 text-center">
+                                        <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border-2 border-dashed border-gray-100 dark:border-gold/10">
+                                            <CalendarIcon className="w-10 h-10 text-gray-300" />
                                         </div>
-                                        <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">Sin compromisos</p>
+                                        <p className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Cero compromisos</p>
                                     </div>
                                 ) : (
                                     selectedDayEvents.map(event => (
-                                        <div key={event.id} className="group p-5 bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-gold/10 rounded-3xl hover:border-gold/40 hover:bg-gold-[rgba(212,175,55,0.05)] transition-all">
-                                            <h4 className="font-black text-gray-900 dark:text-white mb-3 text-sm leading-tight group-hover:text-gold transition-colors">
-                                                {event.summary}
-                                            </h4>
-                                            <div className="space-y-2.5">
-                                                <div className="flex items-center gap-3 text-[10px] text-gray-500 dark:text-gray-400 font-black uppercase tracking-wider">
-                                                    <div className="w-6 h-6 rounded-lg bg-gold/10 flex items-center justify-center">
-                                                        <Clock className="w-3 h-3 text-gold" />
-                                                    </div>
-                                                    <span>
-                                                        {event.start.dateTime
-                                                            ? format(parseISO(event.start.dateTime), 'HH:mm')
-                                                            : 'Todo el día'}
-                                                    </span>
+                                        <div key={event.id} className="group p-6 bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-gold/10 rounded-[2rem] hover:border-gold/40 hover:bg-gold/5 transition-all duration-300">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <h4 className="font-black text-gray-900 dark:text-white text-base leading-tight group-hover:text-gold transition-colors pr-4">
+                                                    {event.summary}
+                                                </h4>
+                                                <div className="px-2 py-1 bg-gold/20 rounded-lg text-[9px] font-black text-gold uppercase tracking-widest">
+                                                    {event.start.dateTime
+                                                        ? format(parseISO(event.start.dateTime), 'HH:mm')
+                                                        : 'Todo el día'}
                                                 </div>
+                                            </div>
+                                            <div className="space-y-3">
                                                 {event.location && (
-                                                    <div className="flex items-center gap-3 text-[10px] text-gray-500 dark:text-gray-400 font-bold">
-                                                        <div className="w-6 h-6 rounded-lg bg-gold/10 flex items-center justify-center">
-                                                            <MapPin className="w-3 h-3 text-gold" />
+                                                    <div className="flex items-center gap-3 text-[11px] text-gray-500 dark:text-gray-400 font-bold">
+                                                        <div className="w-8 h-8 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/10">
+                                                            <MapPin className="w-4 h-4 text-gold" />
                                                         </div>
-                                                        <span className="truncate max-w-[200px]">{event.location}</span>
+                                                        <span className="truncate">{event.location}</span>
                                                     </div>
                                                 )}
                                                 {event.description && (
-                                                    <div className="flex items-start gap-3 text-[10px] text-gray-500 dark:text-gray-400 font-bold pt-2 border-t border-gray-100 dark:border-gold/5 mt-2">
-                                                        <div className="w-6 h-6 rounded-lg bg-gold/10 flex items-center justify-center mt-0.5">
-                                                            <FileText className="w-3 h-3 text-gold" />
+                                                    <div className="flex items-start gap-3 text-[11px] text-gray-500 dark:text-gray-400 font-medium pt-3 border-t border-gray-100 dark:border-gold/5 mt-3">
+                                                        <div className="w-8 h-8 rounded-xl bg-gold/10 flex items-center justify-center mt-1 border border-gold/10 shrink-0">
+                                                            <FileText className="w-4 h-4 text-gold" />
                                                         </div>
-                                                        <p className="line-clamp-2 leading-relaxed">{event.description}</p>
+                                                        <p className="leading-relaxed opacity-80">{event.description}</p>
                                                     </div>
                                                 )}
                                             </div>
@@ -367,32 +367,35 @@ export default function CalendarioPage() {
 
             {/* Enhanced Add Modal */}
             {isAddModalOpen && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-[#0a0a0a] w-full max-w-lg rounded-[2.5rem] border border-gray-200 dark:border-gold/30 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-                        <div className="p-8 border-b border-gray-100 dark:border-gold/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-2xl z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-[#080808] w-full max-w-xl rounded-[3.5rem] border border-gray-200 dark:border-gold/20 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+                        <div className="p-10 border-b border-gray-100 dark:border-gold/10 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
                             <div>
-                                <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Programar Cita</h3>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Sincronización en tiempo real</p>
+                                <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Nueva Cita</h3>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-2 flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                    Conexión Google Calendar activa
+                                </p>
                             </div>
-                            <button onClick={() => setIsAddModalOpen(false)} className="p-3 hover:bg-gray-200 dark:hover:bg-white/10 rounded-2xl transition-colors">
-                                <X className="w-6 h-6 text-gray-400" />
+                            <button onClick={() => setIsAddModalOpen(false)} className="p-4 hover:bg-gray-200 dark:hover:bg-white/10 rounded-2xl transition-all">
+                                <X className="w-7 h-7 text-gray-400" />
                             </button>
                         </div>
 
-                        <form className="p-8 space-y-5" onSubmit={handleSubmit}>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <form className="p-10 space-y-6" onSubmit={handleSubmit}>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                                        <AlignLeft className="w-3 h-3 text-gold" /> Título
+                                        <AlignLeft className="w-3 h-3 text-gold" /> Título de la Cita
                                     </label>
-                                    <input name="title" type="text" required placeholder="Ej: Visita Instalación" className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/10 rounded-2xl text-xs font-bold focus:outline-none focus:border-gold" />
+                                    <input name="title" type="text" required placeholder="Ej: Visita Instalación" className="w-full p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30" />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                                        <User className="w-3 h-3 text-gold" /> Cliente
+                                        <User className="w-3 h-3 text-gold" /> Seleccionar Cliente
                                     </label>
-                                    <select name="client" className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/10 rounded-2xl text-xs font-bold focus:outline-none focus:border-gold">
-                                        <option value="">Seleccionar cliente...</option>
+                                    <select name="client" className="w-full p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 appearance-none transition-all">
+                                        <option value="">Cita sin cliente vinculado</option>
                                         {clients.map((c, i) => (
                                             <option key={i} value={c.nombre}>{c.nombre}</option>
                                         ))}
@@ -402,40 +405,40 @@ export default function CalendarioPage() {
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                                    <MapPin className="w-3 h-3 text-gold" /> Dirección / Ubicación
+                                    <MapPin className="w-3 h-3 text-gold" /> Ubicación Exacta
                                 </label>
-                                <input name="address" type="text" placeholder="Calle, Número, Ciudad" className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/10 rounded-2xl text-xs font-bold focus:outline-none focus:border-gold" />
+                                <input name="address" type="text" placeholder="Calle, Número, Ciudad" className="w-full p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30" />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-5">
+                            <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                                        <Clock className="w-3 h-3 text-gold" /> Hora Inicio
+                                        <Clock className="w-3 h-3 text-gold" /> Hora de Inicio
                                     </label>
-                                    <input name="time" type="time" required className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/10 rounded-2xl text-xs font-bold focus:outline-none focus:border-gold" />
+                                    <input name="time" type="time" required className="w-full p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all" />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                                        <Clock className="w-3 h-3 text-gold" /> Duración
+                                        <Clock className="w-3 h-3 text-gold" /> Duración Estimada
                                     </label>
-                                    <select name="duration" className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/10 rounded-2xl text-xs font-bold focus:outline-none focus:border-gold">
-                                        <option value="30 min">30 min</option>
-                                        <option value="1 hora">1 hora</option>
-                                        <option value="2 horas">2 horas</option>
-                                        <option value="3 horas">3 horas</option>
+                                    <select name="duration" className="w-full p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 appearance-none transition-all">
+                                        <option value="30 min">Relámpago (30 min)</option>
+                                        <option value="1 hora">Estándar (1 hora)</option>
+                                        <option value="2 horas">Extendida (2 horas)</option>
+                                        <option value="3 horas">Día completo (3 horas)</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                                    <FileText className="w-3 h-3 text-gold" /> Notas Internas
+                                    <FileText className="w-3 h-3 text-gold" /> Detalles y Notas
                                 </label>
-                                <textarea name="notes" placeholder="Información relevante para la cita..." className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/10 rounded-2xl text-xs font-bold focus:outline-none focus:border-gold min-h-[100px] resize-none" />
+                                <textarea name="notes" placeholder="Información crítica para esta cita..." className="w-full p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all min-h-[120px] resize-none placeholder:opacity-30" />
                             </div>
 
-                            <button type="submit" disabled={isLoading} className="w-full py-5 bg-gradient-to-r from-gold to-gold-dark text-black text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl mt-4 shadow-xl shadow-gold/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">
-                                {isLoading ? 'Sincronizando con Google...' : 'Confirmar y Guardar Cita'}
+                            <button type="submit" disabled={isLoading} className="w-full py-6 bg-gradient-to-br from-gold via-gold to-gold-dark text-black text-[11px] font-black uppercase tracking-[0.4em] rounded-2xl shadow-2xl shadow-gold/30 hover:shadow-gold/50 hover:scale-[1.01] active:scale-95 transition-all duration-300 disabled:opacity-50">
+                                {isLoading ? 'Sincronizando con la Nube...' : 'Publicar Cita en Google'}
                             </button>
                         </form>
                     </div>

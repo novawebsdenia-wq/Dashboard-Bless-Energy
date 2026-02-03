@@ -19,8 +19,11 @@ export async function POST(request: Request) {
         const event = await createEvent(body);
         return NextResponse.json({ success: true, data: event });
     } catch (error: any) {
+        console.error('Calendar POST Error:', error);
+        let message = error.message;
+        if (message.includes('notFound')) message = 'Calendario no encontrado. Verifica tu GOOGLE_CALENDAR_ID.';
         return NextResponse.json(
-            { success: false, error: error.message },
+            { success: false, error: message },
             { status: 500 }
         );
     }
