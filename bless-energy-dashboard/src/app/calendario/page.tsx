@@ -71,6 +71,12 @@ export default function CalendarioPage() {
     const [formPhone, setFormPhone] = useState('');
     const [formEmail, setFormEmail] = useState('');
 
+    // New states for full control
+    const [formTitle, setFormTitle] = useState('');
+    const [formTime, setFormTime] = useState('');
+    const [formDuration, setFormDuration] = useState('1 hora');
+    const [formNotes, setFormNotes] = useState('');
+
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -159,25 +165,20 @@ export default function CalendarioPage() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const formData = new FormData(e.currentTarget);
-        const title = formData.get('title') as string;
-        // Client name is now handled via state selectedClient but also form data
-        const clientName = selectedClient;
 
-        // We use state values for these now to allow editing after auto-fill
+        // Use state values
+        const title = formTitle;
+        const clientName = selectedClient;
         const address = formAddress;
 
-        const time = formData.get('time') as string;
-        const duration = formData.get('duration') as string;
-        const notes = formData.get('notes') as string;
-
+        // Time & Date logic
         const startDateTime = new Date(selectedDate);
-        const [hours, minutes] = time.split(':');
+        const [hours, minutes] = formTime.split(':');
         startDateTime.setHours(parseInt(hours), parseInt(minutes));
 
-        // Append contact info to description for Google Calendar
+        // Append contact info
         const fullDescription = `
-${notes}
+${formNotes}
 
 --- Detalles del Cliente ---
 Cliente: ${clientName}
@@ -186,10 +187,11 @@ Email: ${formEmail}
 `.trim();
 
         const endDateTime = new Date(startDateTime);
-        if (duration === '1 hora') endDateTime.setHours(endDateTime.getHours() + 1);
-        else if (duration === '2 horas') endDateTime.setHours(endDateTime.getHours() + 2);
-        else if (duration === '3 horas') endDateTime.setHours(endDateTime.getHours() + 3);
-        else endDateTime.setMinutes(endDateTime.getMinutes() + 30);
+        if (formDuration === '30 min') endDateTime.setMinutes(endDateTime.getMinutes() + 30);
+        else if (formDuration === '1 hora') endDateTime.setHours(endDateTime.getHours() + 1);
+        else if (formDuration === '2 horas') endDateTime.setHours(endDateTime.getHours() + 2);
+        else if (formDuration === '3 horas') endDateTime.setHours(endDateTime.getHours() + 3);
+        else endDateTime.setMinutes(endDateTime.getMinutes() + 30); // secure default
 
         const fullTitle = clientName ? `${title} - ${clientName}` : title;
 
@@ -229,6 +231,10 @@ Email: ${formEmail}
                 setFormAddress('');
                 setFormPhone('');
                 setFormEmail('');
+                setFormTitle('');
+                setFormTime('');
+                setFormNotes('');
+                setFormDuration('1 hora');
                 fetchData();
             } else {
                 throw new Error(data.error);
@@ -394,11 +400,17 @@ Email: ${formEmail}
                                 <button
                                     onClick={() => {
                                         setIsAddModalOpen(true);
-                                        // Reset fields when opening
+                                        // Reset fields when opening new
                                         setSelectedClient('');
                                         setFormAddress('');
                                         setFormPhone('');
                                         setFormEmail('');
+                                        setFormTitle('');
+                                        setFormTime('09:00');
+                                        setFormNotes('');
+                                        setFormDuration('1 hora');
+                                        // Ensure editing event is null
+                                        setEditingEvent(null);
                                     }}
                                     className="p-4 sm:p-5 bg-gold text-black rounded-2xl shadow-xl shadow-gold/20 hover:scale-110 active:scale-95 transition-all border-none"
                                 >
@@ -430,20 +442,55 @@ Email: ${formEmail}
                                                     <button
                                                         onClick={() => {
                                                             setEditingEvent(event);
-                                                            // Pre-fill form
-                                                            // Extract contact info from description if possible
+
+                                                            // 1. Parse Title & Client
+                                                            // Format: "Title - ClientName" or just "Title"
+                                                            let rawTitle = event.summary || '';
+                                                            let foundClientName = '';
+
+                                                            if (rawTitle.includes(' - ')) {
+                                                                const parts = rawTitle.split(' - ');
+                                                                // Assume last part is client if it matches a client in our list
+                                                                const potentialClient = parts[parts.length - 1];
+                                                                const clientMatch = clients.find(c => c.nombre === potentialClient);
+                                                                if (clientMatch) {
+                                                                    foundClientName = clientMatch.nombre;
+                                                                    // Reassemble title without the client part
+                                                                    rawTitle = parts.slice(0, -1).join(' - ');
+                                                                }
+                                                            }
+                                                            setFormTitle(rawTitle);
+                                                            setSelectedClient(foundClientName);
+
+                                                            // 2. Parse Contact Info & Notes
                                                             const desc = event.description || '';
+
+                                                            // Extract user notes (everything before the separator)
+                                                            const separatorIndex = desc.indexOf('--- Detalles del Cliente ---');
+                                                            const cleanNotes = separatorIndex !== -1 ? desc.substring(0, separatorIndex).trim() : desc;
+                                                            setFormNotes(cleanNotes);
+
+                                                            // Extract fields from the block
                                                             const phoneMatch = desc.match(/Teléfono: (.*)/);
                                                             const emailMatch = desc.match(/Email: (.*)/);
 
                                                             setFormPhone(phoneMatch ? phoneMatch[1].trim() : '');
                                                             setFormEmail(emailMatch ? emailMatch[1].trim() : '');
-                                                            setSelectedClient(''); // Hard to match back to client without ID, keep empty for now to avoid accidental changes
                                                             setFormAddress(event.location || '');
 
-                                                            // Parse time
-                                                            const eventStart = new Date(event.start.dateTime || event.start.date || '');
-                                                            // Adjust component state if we needed selectedDate to match... actually user can edit any event so we might just leave selectedDate alone
+                                                            // 3. Parse Time & Duration
+                                                            const start = event.start.dateTime ? parseISO(event.start.dateTime) : (event.start.date ? parseISO(event.start.date) : new Date());
+                                                            const end = event.end.dateTime ? parseISO(event.end.dateTime) : (event.end.date ? parseISO(event.end.date) : addDays(start, 1));
+
+                                                            setFormTime(format(start, 'HH:mm'));
+
+                                                            const diffMs = end.getTime() - start.getTime();
+                                                            const diffMins = Math.round(diffMs / 60000);
+
+                                                            if (diffMins <= 30) setFormDuration('30 min');
+                                                            else if (diffMins <= 60) setFormDuration('1 hora');
+                                                            else if (diffMins <= 120) setFormDuration('2 horas');
+                                                            else setFormDuration('3 horas');
 
                                                             setIsAddModalOpen(true);
                                                         }}
@@ -495,8 +542,8 @@ Email: ${formEmail}
 
             {/* Enhanced Add Modal */}
             {isAddModalOpen && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-2xl z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-[#080808] w-full max-w-xl rounded-[3.5rem] border border-gray-200 dark:border-gold/20 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-2xl z-50 flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-white dark:bg-[#080808] w-full max-w-xl rounded-[3.5rem] border border-gray-200 dark:border-gold/20 shadow-2xl relative animate-in fade-in zoom-in-95 duration-500 my-8">
                         <div className="p-8 sm:p-10 border-b border-gray-100 dark:border-gold/10 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
                             <div>
                                 <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
@@ -518,7 +565,15 @@ Email: ${formEmail}
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                         <AlignLeft className="w-3 h-3 text-gold" /> Título de la Cita
                                     </label>
-                                    <input name="title" type="text" required placeholder="Ej: Visita Instalación" className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30" />
+                                    <input
+                                        name="title"
+                                        type="text"
+                                        required
+                                        value={formTitle}
+                                        onChange={(e) => setFormTitle(e.target.value)}
+                                        placeholder="Ej: Visita Instalación"
+                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
@@ -600,13 +655,25 @@ Email: ${formEmail}
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                         <Clock className="w-3 h-3 text-gold" /> Hora de Inicio
                                     </label>
-                                    <input name="time" type="time" required className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all" />
+                                    <input
+                                        name="time"
+                                        type="time"
+                                        required
+                                        value={formTime}
+                                        onChange={(e) => setFormTime(e.target.value)}
+                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all"
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                         <Clock className="w-3 h-3 text-gold" /> Duración Estimada
                                     </label>
-                                    <select name="duration" className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 appearance-none transition-all">
+                                    <select
+                                        name="duration"
+                                        value={formDuration}
+                                        onChange={(e) => setFormDuration(e.target.value)}
+                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 appearance-none transition-all"
+                                    >
                                         <option value="30 min">Relámpago (30 min)</option>
                                         <option value="1 hora">Estándar (1 hora)</option>
                                         <option value="2 horas">Extendida (2 horas)</option>
@@ -619,7 +686,13 @@ Email: ${formEmail}
                                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                                     <FileText className="w-3 h-3 text-gold" /> Detalles y Notas
                                 </label>
-                                <textarea name="notes" placeholder="Información crítica para esta cita..." className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all min-h-[100px] resize-none placeholder:opacity-30" />
+                                <textarea
+                                    name="notes"
+                                    value={formNotes}
+                                    onChange={(e) => setFormNotes(e.target.value)}
+                                    placeholder="Información crítica para esta cita..."
+                                    className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all min-h-[100px] resize-none placeholder:opacity-30"
+                                />
                             </div>
 
                             <button type="submit" disabled={isLoading} className="w-full py-5 sm:py-6 bg-gradient-to-br from-gold via-gold to-gold-dark text-black text-[10px] sm:text-[11px] font-black uppercase tracking-[0.4em] rounded-2xl shadow-2xl shadow-gold/30 hover:shadow-gold/50 hover:scale-[1.01] active:scale-95 transition-all duration-300 disabled:opacity-50">
