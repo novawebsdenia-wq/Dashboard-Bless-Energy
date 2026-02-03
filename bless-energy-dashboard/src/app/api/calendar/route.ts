@@ -69,8 +69,12 @@ export async function POST(request: Request) {
                         clientEmail: clientEmail,
                         clientPhone: clientPhone || '',
                         appointmentTitle,
-                        appointmentDate: startDate.toISOString().split('T')[0],
-                        appointmentTime: startDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+                        appointmentDate: startDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' }), // YYYY-MM-DD
+                        appointmentTime: startDate.toLocaleTimeString('es-ES', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            timeZone: 'Europe/Madrid' // Force Madrid timezone
+                        }),
                         duration: clientDuration || '',
                         address,
                         city,
@@ -137,8 +141,12 @@ export async function PUT(request: Request) {
                         clientEmail: clientEmail,
                         clientPhone: clientPhone || '',
                         appointmentTitle,
-                        appointmentDate: startDate.toISOString().split('T')[0],
-                        appointmentTime: startDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+                        appointmentDate: startDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' }), // YYYY-MM-DD
+                        appointmentTime: startDate.toLocaleTimeString('es-ES', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            timeZone: 'Europe/Madrid' // Force Madrid timezone
+                        }),
                         duration: clientDuration || '',
                         address,
                         city,
