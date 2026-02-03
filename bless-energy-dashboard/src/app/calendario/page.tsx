@@ -214,9 +214,11 @@ Población: ${city}
                 start: { dateTime: startDateTime.toISOString() },
                 end: { dateTime: endDateTime.toISOString() },
                 sendInvitation,
-                attendees: formEmail ? [{ email: formEmail }] : [],
+                // NO incluir attendees en Google Calendar (causa errores con Service Accounts)
+                // attendees: formEmail ? [{ email: formEmail }] : [],
                 clientPhone: formPhone,
-                clientDuration: formDuration
+                clientDuration: formDuration,
+                clientEmail: formEmail // Solo para n8n webhook
             };
 
             if (editingEvent) {

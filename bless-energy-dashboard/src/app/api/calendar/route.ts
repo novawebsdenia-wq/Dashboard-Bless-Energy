@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { sendInvitation, clientPhone, clientDuration, ...eventData } = body;
+        const { sendInvitation, clientPhone, clientDuration, clientEmail, ...eventData } = body;
 
         // Add default reminders if not present
         if (!eventData.reminders) {
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
         const event = await createEvent(eventData);
 
         // Send email confirmation via n8n if toggle is enabled
-        if (sendInvitation && eventData.attendees?.[0]?.email && process.env.N8N_WEBHOOK_URL) {
+        if (sendInvitation && clientEmail && process.env.N8N_WEBHOOK_URL) {
             try {
                 // Extract client data from event
                 const clientName = eventData.summary.includes(' - ')
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         clientName,
-                        clientEmail: eventData.attendees[0].email,
+                        clientEmail: clientEmail,
                         clientPhone: clientPhone || '',
                         appointmentTitle,
                         appointmentDate: startDate.toISOString().split('T')[0],
@@ -89,11 +89,11 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json();
-        const { eventId, sendInvitation, clientPhone, clientDuration, ...eventData } = body;
+        const { eventId, sendInvitation, clientPhone, clientDuration, clientEmail, ...eventData } = body;
         const event = await updateEvent(eventId, eventData);
 
         // Send email confirmation via n8n if toggle is enabled
-        if (sendInvitation && eventData.attendees?.[0]?.email && process.env.N8N_WEBHOOK_URL) {
+        if (sendInvitation && clientEmail && process.env.N8N_WEBHOOK_URL) {
             try {
                 const clientName = eventData.summary.includes(' - ')
                     ? eventData.summary.split(' - ')[1]
@@ -111,7 +111,7 @@ export async function PUT(request: Request) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         clientName,
-                        clientEmail: eventData.attendees[0].email,
+                        clientEmail: clientEmail,
                         clientPhone: clientPhone || '',
                         appointmentTitle,
                         appointmentDate: startDate.toISOString().split('T')[0],
