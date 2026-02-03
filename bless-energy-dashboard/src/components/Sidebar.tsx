@@ -10,6 +10,7 @@ import {
   FileText,
   Users,
   Receipt,
+  Calendar as CalendarIcon, // Import the icon
   Menu,
   X,
 } from 'lucide-react';
@@ -17,6 +18,7 @@ import { useState } from 'react';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/calendario', label: 'Calendario', icon: CalendarIcon }, // Add calendars
   { href: '/emails', label: 'Emails', icon: Mail },
   { href: '/calculadora', label: 'Calculadora Web', icon: Calculator },
   { href: '/formulario', label: 'Formulario Web', icon: FileText },
