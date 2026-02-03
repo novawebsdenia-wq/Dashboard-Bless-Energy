@@ -17,7 +17,9 @@ import {
     Trash2,
     FileText,
     User,
-    Calendar as CalendarIcon // Re-adding as alias to fix usage
+    Calendar as CalendarIcon, // Re-adding as alias to fix usage
+    Phone,
+    Mail
 } from 'lucide-react';
 import {
     format,
@@ -520,9 +522,10 @@ Población: ${city}
                                                 </div>
                                             </div>
                                             <div className="space-y-3">
+                                                {/* Location & City */}
                                                 {event.location && (
                                                     <div className="flex items-center gap-3 text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-bold">
-                                                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/10">
+                                                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/10 shrink-0">
                                                             <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-gold" />
                                                         </div>
                                                         <span className="truncate">
@@ -534,6 +537,39 @@ Población: ${city}
                                                         </span>
                                                     </div>
                                                 )}
+
+                                                {/* Contact Details (Phone & Email) derived from Description */}
+                                                {(() => {
+                                                    const phoneMatch = event.description?.match(/Teléfono: (.*)/);
+                                                    const emailMatch = event.description?.match(/Email: (.*)/);
+                                                    const phone = phoneMatch ? phoneMatch[1].trim() : '';
+                                                    const email = emailMatch ? emailMatch[1].trim() : '';
+
+                                                    if (!phone && !email) return null;
+
+                                                    return (
+                                                        <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gold/5 mt-2">
+                                                            {phone && (
+                                                                <div className="flex items-center gap-3 text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-medium">
+                                                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/10 shrink-0">
+                                                                        <Phone className="w-3 h-3 sm:w-4 sm:h-4 text-gold" />
+                                                                    </div>
+                                                                    <span>{phone}</span>
+                                                                </div>
+                                                            )}
+                                                            {email && (
+                                                                <div className="flex items-center gap-3 text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-medium">
+                                                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/10 shrink-0">
+                                                                        <Mail className="w-3 h-3 sm:w-4 sm:h-4 text-gold" />
+                                                                    </div>
+                                                                    <span className="truncate">{email}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
+
+                                                {/* User Notes (Clean Description) */}
                                                 {event.description && (
                                                     <div className="flex items-start gap-3 text-[10px] sm:text-[11px] pt-3 border-t border-gray-100 dark:border-gold/5 mt-3">
                                                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gold/10 flex items-center justify-center mt-1 border border-gold/10 shrink-0">

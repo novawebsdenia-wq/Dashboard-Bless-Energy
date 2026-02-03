@@ -156,12 +156,12 @@ export default function Dashboard() {
                   <div>
                     <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">Agenda de Hoy</h3>
                     {stats.todaysAppointments.nextAppointment ? (
-                      <div className="flex items-center gap-3 mt-1 text-gray-500 dark:text-gray-400">
-                        <span className="text-xs font-bold bg-green-500/10 text-green-600 px-2 py-0.5 rounded-lg flex items-center gap-1.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mt-1 text-gray-500 dark:text-gray-400 w-full sm:w-auto">
+                        <span className="text-xs font-bold bg-green-500/10 text-green-600 px-2 py-0.5 rounded-lg flex items-center gap-1.5 w-fit">
                           <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
                           {stats.todaysAppointments.nextAppointment.time}
                         </span>
-                        <span className="text-xs font-bold truncate max-w-[200px]">
+                        <span className="text-xs font-bold whitespace-normal break-words leading-tight">
                           {stats.todaysAppointments.nextAppointment.title}
                         </span>
                       </div>
