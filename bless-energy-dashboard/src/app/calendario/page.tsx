@@ -677,109 +677,130 @@ Población: ${city}
                                         ))}
                                     </select>
                                 </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                {/* Invitation Toggle */}
+                                <div className="bg-gold/5 border border-gold/10 p-4 sm:p-6 rounded-[2rem] flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-gold/20 rounded-xl flex items-center justify-center border border-gold/20">
+                                            <Bell className="w-5 h-5 text-gold" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-gold mb-0.5 text-left">Confirmación al Cliente</p>
+                                            <p className="text-[9px] text-gray-500 dark:text-gray-400 font-bold text-left">Enviar invitación automática por email</p>
+                                        </div>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={sendInvitation}
+                                            onChange={(e) => setSendInvitation(e.target.checked)}
+                                        />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none dark:bg-white/10 peer-focus:ring-2 peer-focus:ring-gold/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold"></div>
+                                    </label>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                                            <span className="w-3 h-3 text-gold">📞</span> Teléfono
+                                        </label>
+                                        <input
+                                            name="phone"
+                                            type="tel"
+                                            value={formPhone}
+                                            onChange={(e) => setFormPhone(e.target.value)}
+                                            placeholder="+34 600 000 000"
+                                            className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                                            <span className="w-3 h-3 text-gold">@</span> Email
+                                        </label>
+                                        <input
+                                            name="email"
+                                            type="email"
+                                            value={formEmail}
+                                            onChange={(e) => setFormEmail(e.target.value)}
+                                            placeholder="cliente@ejemplo.com"
+                                            className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                                        <span className="w-3 h-3 text-gold">📞</span> Teléfono
+                                        <MapPin className="w-3 h-3 text-gold" /> Ubicación Exacta
                                     </label>
-                                    <input
-                                        name="phone"
-                                        type="tel"
-                                        value={formPhone}
-                                        onChange={(e) => setFormPhone(e.target.value)}
-                                        placeholder="+34 600 000 000"
-                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
-                                    />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <input
+                                            name="address"
+                                            type="text"
+                                            value={formAddress}
+                                            onChange={(e) => setFormAddress(e.target.value)}
+                                            placeholder="Calle, Número"
+                                            className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
+                                        />
+                                        <input
+                                            name="city"
+                                            type="text"
+                                            value={formCity}
+                                            onChange={(e) => setFormCity(e.target.value)}
+                                            placeholder="Población"
+                                            className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
+                                        />
+                                    </div>
                                 </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                                            <Clock className="w-3 h-3 text-gold" /> Hora de Inicio
+                                        </label>
+                                        <input
+                                            name="time"
+                                            type="time"
+                                            required
+                                            value={formTime}
+                                            onChange={(e) => setFormTime(e.target.value)}
+                                            className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                                            <Clock className="w-3 h-3 text-gold" /> Duración Estimada
+                                        </label>
+                                        <select
+                                            name="duration"
+                                            value={formDuration}
+                                            onChange={(e) => setFormDuration(e.target.value)}
+                                            className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 appearance-none transition-all"
+                                        >
+                                            <option value="30 min">Relámpago (30 min)</option>
+                                            <option value="1 hora">Estándar (1 hora)</option>
+                                            <option value="2 horas">Extendida (2 horas)</option>
+                                            <option value="3 horas">Día completo (3 horas)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                                        <span className="w-3 h-3 text-gold">@</span> Email
+                                        <FileText className="w-3 h-3 text-gold" /> Detalles y Notas
                                     </label>
-                                    <input
-                                        name="email"
-                                        type="email"
-                                        value={formEmail}
-                                        onChange={(e) => setFormEmail(e.target.value)}
-                                        placeholder="cliente@ejemplo.com"
-                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
+                                    <textarea
+                                        name="notes"
+                                        value={formNotes}
+                                        onChange={(e) => setFormNotes(e.target.value)}
+                                        placeholder="Información crítica para esta cita..."
+                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all min-h-[100px] resize-none placeholder:opacity-30"
                                     />
                                 </div>
-                            </div>
 
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                                    <MapPin className="w-3 h-3 text-gold" /> Ubicación Exacta
-                                </label>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <input
-                                        name="address"
-                                        type="text"
-                                        value={formAddress}
-                                        onChange={(e) => setFormAddress(e.target.value)}
-                                        placeholder="Calle, Número"
-                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
-                                    />
-                                    <input
-                                        name="city"
-                                        type="text"
-                                        value={formCity}
-                                        onChange={(e) => setFormCity(e.target.value)}
-                                        placeholder="Población"
-                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all placeholder:opacity-30"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                                        <Clock className="w-3 h-3 text-gold" /> Hora de Inicio
-                                    </label>
-                                    <input
-                                        name="time"
-                                        type="time"
-                                        required
-                                        value={formTime}
-                                        onChange={(e) => setFormTime(e.target.value)}
-                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                                        <Clock className="w-3 h-3 text-gold" /> Duración Estimada
-                                    </label>
-                                    <select
-                                        name="duration"
-                                        value={formDuration}
-                                        onChange={(e) => setFormDuration(e.target.value)}
-                                        className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 appearance-none transition-all"
-                                    >
-                                        <option value="30 min">Relámpago (30 min)</option>
-                                        <option value="1 hora">Estándar (1 hora)</option>
-                                        <option value="2 horas">Extendida (2 horas)</option>
-                                        <option value="3 horas">Día completo (3 horas)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                                    <FileText className="w-3 h-3 text-gold" /> Detalles y Notas
-                                </label>
-                                <textarea
-                                    name="notes"
-                                    value={formNotes}
-                                    onChange={(e) => setFormNotes(e.target.value)}
-                                    placeholder="Información crítica para esta cita..."
-                                    className="w-full p-4 sm:p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gold/20 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-gold/20 transition-all min-h-[100px] resize-none placeholder:opacity-30"
-                                />
-                            </div>
-
-                            <button type="submit" disabled={isLoading} className="w-full py-5 sm:py-6 bg-gradient-to-br from-gold via-gold to-gold-dark text-black text-[10px] sm:text-[11px] font-black uppercase tracking-[0.4em] rounded-2xl shadow-2xl shadow-gold/30 hover:shadow-gold/50 hover:scale-[1.01] active:scale-95 transition-all duration-300 disabled:opacity-50">
-                                {isLoading ? 'Sincronizando...' : (editingEvent ? 'Guardar Cambios' : 'Publicar Cita')}
-                            </button>
+                                <button type="submit" disabled={isLoading} className="w-full py-5 sm:py-6 bg-gradient-to-br from-gold via-gold to-gold-dark text-black text-[10px] sm:text-[11px] font-black uppercase tracking-[0.4em] rounded-2xl shadow-2xl shadow-gold/30 hover:shadow-gold/50 hover:scale-[1.01] active:scale-95 transition-all duration-300 disabled:opacity-50">
+                                    {isLoading ? 'Sincronizando...' : (editingEvent ? 'Guardar Cambios' : 'Publicar Cita')}
+                                </button>
                         </form>
                     </div>
                 </div>
